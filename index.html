@@ -5,56 +5,113 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Campus Connect — Your campus, one app</title>
 <link rel="stylesheet" href="style.css">
+<!-- Prevents a light-mode flash before script.js applies the saved theme -->
+<script>
+  (function () {
+    try {
+      var saved = localStorage.getItem('cc-theme');
+      var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', theme);
+    } catch (e) {}
+  })();
+</script>
 </head>
 <body>
 
 <header class="site-header">
-  <div class="container nav">
-    <div class="logo">Campus Connect</div>
+  <div class="container header-inner">
+    <div class="logo">Campus<span>Connect</span></div>
     <nav class="nav-links">
       <a href="#features">Features</a>
       <a href="#how">How it works</a>
       <a href="#join">Join</a>
     </nav>
-    <a href="#join" class="btn btn-accent nav-btn">Join the waitlist</a>
+    <div class="header-actions">
+      <button id="themeToggle" class="theme-toggle" aria-label="Toggle dark mode" type="button">
+        <span class="theme-icon theme-icon-sun">☀️</span>
+        <span class="theme-icon theme-icon-moon">🌙</span>
+      </button>
+      <a href="#join" class="btn btn-accent nav-cta">Join the waitlist</a>
+    </div>
   </div>
 </header>
 
-<section class="hero">
+<section class="hero hero-video">
+  <div class="hero-video-bg">
+    <!--
+      Drop your own campus footage in as /assets/hero.mp4 (and an optional
+      /assets/hero.webm for better compression). poster= shows instantly
+      while the video loads, and is also what mobile falls back to.
+    -->
+    <video
+      class="hero-video-el"
+      autoplay
+      muted
+      loop
+      playsinline
+      poster="assets/hero-poster.jpg">
+      <source src="assets/hero.webm" type="video/webm">
+      <source src="assets/hero.mp4" type="video/mp4">
+    </video>
+    <div class="hero-video-overlay"></div>
+  </div>
+
   <div class="container hero-inner">
-    <span class="badge">.edu verified only</span>
-    <h1>The campus marketplace, finally done right.</h1>
-    <p class="hero-sub">Post a gig, sell your stuff, find a tutor — all in one verified app built for your university.</p>
-    <div class="hero-ctas">
-      <a href="#join" class="btn btn-accent">Join the waitlist</a>
-      <a href="#how" class="btn btn-outline">How it works</a>
+    <div class="hero-text">
+      <span class="badge">.education verified · campus only</span>
+      <h1>Your campus marketplace, finally in one app.</h1>
+      <p>Post a gig, sell your old textbooks, find a tutor. Campus Connect replaces the scattered Facebook groups and WhatsApp chats with one verified, searchable app built for your university.</p>
+      <div class="hero-ctas">
+        <a href="#join" class="btn btn-primary">Join the waitlist</a>
+        <a href="#how" class="btn btn-outline">See how it works</a>
+      </div>
+    </div>
+    <div class="hero-card">
+      <div class="phone-mock">
+        <div class="phone-notch"></div>
+        <div class="phone-item">
+          <span class="pill pill-green">Verified</span>
+          <strong>Calc II Tutoring</strong>
+          <p>K50/hr · Library, Tue/Thu</p>
+        </div>
+        <div class="phone-item">
+          <span class="pill pill-orange">For sale</span>
+          <strong>Mini fridge</strong>
+          <p>K450 · pickup only</p>
+        </div>
+        <div class="phone-item">
+          <span class="pill pill-green">★ 4.9</span>
+          <strong>32 reviews</strong>
+          <p>"Fast, easy, showed up on time."</p>
+        </div>
+      </div>
     </div>
   </div>
 </section>
 
 <section class="section" id="features">
   <div class="container">
-    <h2>Everything students already trade, in one place</h2>
-    <div class="grid grid-4">
-      <div class="card">
-        <div class="icon">🎓</div>
-        <h3>Verified students only</h3>
-        <p>Sign up requires a real .edu email, so everyone on the app actually goes to your school.</p>
+    <h2 class="section-title">Everything students already trade, in one place</h2>
+    <div class="feature-grid">
+      <div class="feature-card">
+        <div class="feature-icon">🎓</div>
+        <h3>Verified, always</h3>
+        <p>Sign up requires a real .education email — no strangers, no bots.</p>
       </div>
-      <div class="card">
-        <div class="icon">🛍️</div>
+      <div class="feature-card">
+        <div class="feature-icon">🛍️</div>
         <h3>Gigs & goods</h3>
-        <p>Tutoring, services, and stuff for sale — search by category instead of scrolling forever.</p>
+        <p>Tutoring, skills, textbooks, furniture — one searchable feed.</p>
       </div>
-      <div class="card">
-        <div class="icon">💬</div>
-        <h3>In-app chat</h3>
-        <p>Message buyers and sellers without handing out your personal number.</p>
+      <div class="feature-card">
+        <div class="feature-icon">💬</div>
+        <h3>Built-in chat</h3>
+        <p>Message in-app. No handing your number to a stranger.</p>
       </div>
-      <div class="card">
-        <div class="icon">⭐</div>
-        <h3>Peer reviews</h3>
-        <p>Every deal ends with a rating, so trust builds with every transaction.</p>
+      <div class="feature-card">
+        <div class="feature-icon">⭐</div>
+        <h3>Rated by your peers</h3>
+        <p>Every deal ends in a review from someone who actually goes here.</p>
       </div>
     </div>
   </div>
@@ -62,43 +119,44 @@
 
 <section class="section section-alt" id="how">
   <div class="container">
-    <h2>Three steps to get started</h2>
-    <div class="grid grid-3">
+    <h2 class="section-title">Three steps and you're in</h2>
+    <div class="steps">
       <div class="step">
-        <span class="step-num">01</span>
-        <h3>Verify your .edu</h3>
-        <p>Sign up with your university email to unlock the app.</p>
+        <span class="step-num">1</span>
+        <h3>Verify your .education</h3>
+        <p>That's the whole trust layer — no outsiders, ever.</p>
       </div>
       <div class="step">
-        <span class="step-num">02</span>
+        <span class="step-num">2</span>
         <h3>Post or browse</h3>
-        <p>List a gig or item, or search what's already posted on your campus.</p>
+        <p>List something in under a minute, or search what's already up.</p>
       </div>
       <div class="step">
-        <span class="step-num">03</span>
-        <h3>Meet & rate</h3>
-        <p>Chat in-app, close the deal on campus, then leave a review.</p>
+        <span class="step-num">3</span>
+        <h3>Meet, deal, rate</h3>
+        <p>Chat in-app, meet on campus, then leave a review.</p>
       </div>
     </div>
   </div>
 </section>
 
 <section class="section" id="join">
-  <div class="container cta-box">
-    <h2>Be first on your campus</h2>
-    <p>Drop your .edu email and we'll notify you the moment Campus Connect launches at your university.</p>
-
-    <form id="waitlistForm" class="waitlist-form">
-      <input type="email" name="email" id="email" placeholder="you@youruniversity.edu" required>
-      <button type="submit" class="btn btn-accent">Join the waitlist</button>
-    </form>
-    <p id="formMessage" class="form-message"></p>
+  <div class="container">
+    <div class="cta-box">
+      <h2>Be first on your campus</h2>
+      <p>We're rolling out one campus at a time. Drop your .education email and we'll notify you the moment Campus Connect lands on yours.</p>
+      <form id="waitlistForm" class="waitlist-form">
+        <input type="email" id="waitlistEmail" name="email" placeholder="you@youruniversity.edu" required>
+        <button type="submit" class="btn btn-primary">Join the waitlist</button>
+      </form>
+      <p class="form-msg" id="formMsg"></p>
+    </div>
   </div>
 </section>
 
 <footer class="site-footer">
   <div class="container footer-inner">
-    <p>&copy; 2026 Campus Connect. Not affiliated with any university administration.</p>
+    <p>Campus Connect — currently piloting on select campuses. Not affiliated with your university's administration.</p>
     <nav class="footer-links">
       <a href="#features">Features</a>
       <a href="#how">How it works</a>
