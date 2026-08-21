@@ -1,0 +1,11 @@
+# Waitlist signups contain real student emails — never commit this
+waitlist.csv
+
+# OS / editor junk
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Logs
+*.log
