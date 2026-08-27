@@ -26,8 +26,10 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
-  // ---- Waitlist form ----
+  // ---- Waitlist form (only present on index.html) ----
   const form = document.getElementById('waitlistForm');
+  if (!form) return;
+
   const emailInput = document.getElementById('waitlistEmail');
   const msg = document.getElementById('formMsg');
 
@@ -36,7 +38,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const email = emailInput.value.trim();
 
     if (!email.toLowerCase().endsWith('.education')) {
-      showMessage("Use your .education email — that's how we verify students.", '#c0392b');
+      showMessage("Use your .education email — that's how we verify students.", 'var(--error)');
       return;
     }
 
@@ -51,15 +53,15 @@ document.addEventListener('DOMContentLoaded', function () {
     })
       .then(function (res) { return res.json(); })
       .then(function (data) {
-        if (data.status === 'success') {
-          showMessage("You're on the list. Check " + email + " when your campus goes live.", '#2E8B57');
+        if (data.success) {
+          showMessage("You're on the list. Check " + email + " when your campus goes live.", 'var(--success)');
           form.reset();
         } else {
-          showMessage(data.message || 'Something went wrong. Try again.', '#c0392b');
+          showMessage(data.error || 'Something went wrong. Try again.', 'var(--error)');
         }
       })
       .catch(function () {
-        showMessage('Could not reach the server. Try again in a moment.', '#c0392b');
+        showMessage('Could not reach the server. Try again in a moment.', 'var(--error)');
       })
       .finally(function () {
         submitBtn.disabled = false;

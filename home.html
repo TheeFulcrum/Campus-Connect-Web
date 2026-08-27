@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Home — Campus Connect</title>
+<link rel="stylesheet" href="style.css">
+<script>
+  (function () {
+    try {
+      var saved = localStorage.getItem('cc-theme');
+      var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', theme);
+    } catch (e) {}
+  })();
+</script>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="container header-inner">
+    <a href="index.html" class="logo">Campus<span>Connect</span></a>
+    <div class="header-actions">
+      <button id="themeToggle" class="theme-toggle" aria-label="Toggle dark mode" type="button">
+        <span class="theme-icon theme-icon-sun">☀️</span>
+        <span class="theme-icon theme-icon-moon">🌙</span>
+      </button>
+      <button id="logoutBtn" class="btn btn-outline nav-cta" type="button">Log Out</button>
+    </div>
+  </div>
+</header>
+
+<section class="section auth-section">
+  <div class="container">
+    <div class="auth-box home-box">
+      <h1 id="welcomeHeading">Welcome!</h1>
+      <p class="auth-subtitle" id="campusLine"></p>
+      <p class="home-placeholder">The marketplace feed will live here.</p>
+    </div>
+  </div>
+</section>
+
+<footer class="site-footer">
+  <div class="container footer-inner">
+    <p>Campus Connect — currently piloting on select campuses.</p>
+  </div>
+</footer>
+
+<script src="script.js"></script>
+<script src="home.js"></script>
+</body>
+</html>

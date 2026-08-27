@@ -3,21 +3,23 @@
    Brand colors (primary/accent/success) stay IDENTICAL across
    light and dark mode, and match the Android colors.xml exactly.
    Only background/surface/text/border shift between themes.
+   Source of truth: colors.md
    ========================================================== */
 :root{
-  --primary: #1B3A4B;      /* Campus Navy   — colorPrimary in the app */
-  --primary-dark: #12262F;
-  --accent: #FF6B35;       /* Ember Orange  — colorAccent in the app */
-  --accent-dark: #E4551F;
-  --success: #2E8B57;      /* Campus Green  — verified / ratings */
+  --primary: #243B6B;      /* Navy         — colorPrimary in the app */
+  --primary-dark: #182747; /* Pressed/hover, status bar, footer */
+  --accent: #FF6B45;       /* Orange       — colorAccent in the app */
+  --accent-dark: #E0532B;
+  --success: #2E9E6E;      /* Green        — verified / ratings */
 
   /* Light theme (default) */
-  --bg: #F7F5F1;
+  --bg: #F7F6F2;
   --surface: #FFFFFF;
-  --text: #1F2421;
-  --text-muted: #5B655F;
-  --border: #E4E0D8;
-  --hero-overlay: linear-gradient(180deg, rgba(27,58,75,0.55) 0%, rgba(27,58,75,0.75) 100%);
+  --text: #1D1B16;
+  --text-muted: #6B6558;
+  --border: #E4E1D8;
+  --error: #C1432E;
+  --hero-overlay: linear-gradient(180deg, rgba(36,59,107,0.55) 0%, rgba(36,59,107,0.75) 100%);
 
   --radius: 10px;
   --transition-theme: background .25s ease, color .25s ease, border-color .25s ease;
@@ -29,7 +31,7 @@
   --text: #F2F0EA;
   --text-muted: #9DA8A3;
   --border: #2C3941;
-  --hero-overlay: linear-gradient(180deg, rgba(10,16,20,0.65) 0%, rgba(10,16,20,0.88) 100%);
+  --hero-overlay: linear-gradient(180deg, rgba(15,22,32,0.65) 0%, rgba(15,22,32,0.88) 100%);
 }
 
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -63,6 +65,8 @@ img{max-width:100%;display:block;}
 .btn-accent:hover{background:var(--accent-dark);}
 .btn-outline{background:transparent;color:var(--primary);border-color:var(--primary);}
 .btn-outline:hover{background:var(--primary);color:#fff;}
+[data-theme="dark"] .btn-outline{color:#fff;border-color:rgba(255,255,255,0.5);}
+[data-theme="dark"] .btn-outline:hover{background:rgba(255,255,255,0.12);}
 
 /* Header */
 .site-header{
@@ -144,7 +148,7 @@ img{max-width:100%;display:block;}
 @media (max-width:860px){ .hero-inner{grid-template-columns:1fr;} }
 
 .badge{
-  display:inline-block;background:rgba(46,139,87,0.18);color:#fff;
+  display:inline-block;background:rgba(46,158,110,0.18);color:#fff;
   font-weight:700;font-size:0.78rem;padding:6px 14px;border-radius:999px;
   margin-bottom:18px;
 }
@@ -188,8 +192,8 @@ img{max-width:100%;display:block;}
   display:inline-block;font-size:0.68rem;font-weight:700;
   padding:3px 9px;border-radius:999px;
 }
-.pill-green{background:rgba(46,139,87,0.15);color:var(--success);}
-.pill-orange{background:rgba(255,107,53,0.15);color:var(--accent-dark);}
+.pill-green{background:rgba(46,158,110,0.15);color:var(--success);}
+.pill-orange{background:rgba(255,107,69,0.15);color:var(--accent-dark);}
 
 /* Sections */
 .section{padding:80px 0;transition: var(--transition-theme);}
@@ -198,6 +202,7 @@ img{max-width:100%;display:block;}
   text-align:center;font-size:clamp(1.6rem,3vw,2.2rem);
   color:var(--primary);margin-bottom:48px;
 }
+[data-theme="dark"] .section-title{color:#fff;}
 
 /* Features */
 .feature-grid{
@@ -213,10 +218,10 @@ img{max-width:100%;display:block;}
   padding:28px 22px;
   transition:transform .15s ease, box-shadow .15s ease, var(--transition-theme);
 }
-.feature-card:hover{transform:translateY(-4px);box-shadow:0 12px 24px rgba(27,58,75,0.08);}
+.feature-card:hover{transform:translateY(-4px);box-shadow:0 12px 24px rgba(36,59,107,0.08);}
 .feature-icon{
   width:44px;height:44px;border-radius:10px;
-  background:rgba(27,58,75,0.08);
+  background:rgba(36,59,107,0.08);
   display:flex;align-items:center;justify-content:center;
   font-size:1.3rem;margin-bottom:16px;
 }
@@ -254,6 +259,41 @@ img{max-width:100%;display:block;}
 }
 .waitlist-form input:focus{outline:3px solid var(--accent);}
 .form-msg{margin-top:14px;font-size:0.88rem;min-height:1.2em;}
+
+/* Auth pages (login / signup) */
+.auth-section{ display:flex; justify-content:center; padding:80px 0; }
+.auth-box{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:44px 36px;
+  max-width:420px;
+  width:100%;
+  margin:0 auto;
+  box-shadow:0 10px 30px rgba(0,0,0,0.06);
+}
+.auth-box h1{ font-size:1.6rem; color:var(--primary); margin-bottom:6px; }
+[data-theme="dark"] .auth-box h1{ color:#fff; }
+.auth-subtitle{ color:var(--text-muted); font-size:0.92rem; margin-bottom:26px; }
+.auth-form{ display:flex; flex-direction:column; gap:6px; }
+.auth-form label{ font-size:0.82rem; font-weight:600; margin-top:12px; }
+.auth-form input, .auth-form select{
+  padding:12px 14px;
+  border-radius:8px;
+  border:1px solid var(--border);
+  background:var(--bg);
+  color:var(--text);
+  font-size:0.95rem;
+  font-family:inherit;
+}
+.auth-form input:focus, .auth-form select:focus{ outline:2px solid var(--accent); }
+.auth-submit{ margin-top:20px; width:100%; text-align:center; border:none; }
+.auth-switch{ margin-top:20px; text-align:center; font-size:0.88rem; color:var(--text-muted); }
+.auth-switch a{ color:var(--accent); font-weight:600; }
+
+/* Home page */
+.home-box{ text-align:center; }
+.home-placeholder{ margin-top:24px; color:var(--text-muted); font-size:0.92rem; }
 
 /* Footer */
 .site-footer{padding:36px 0;border-top:1px solid var(--border);transition: var(--transition-theme);}

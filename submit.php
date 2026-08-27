@@ -25,8 +25,8 @@ if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
     exit;
 }
 
-if (!str_ends_with(strtolower($email), '.edu')) {
-    echo json_encode(['success' => false, 'error' => 'Please use your .edu university email.']);
+if (!str_ends_with(strtolower($email), '.education')) {
+    echo json_encode(['success' => false, 'error' => 'Please use your .education university email.']);
     exit;
 }
 
