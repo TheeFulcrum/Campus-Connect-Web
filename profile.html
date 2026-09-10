@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Profile — Campus Connect</title>
+<link rel="stylesheet" href="style.css">
+<script>
+  (function () {
+    try {
+      var saved = localStorage.getItem('cc-theme');
+      var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', theme);
+    } catch (e) {}
+  })();
+</script>
+</head>
+<body>
+<header class="site-header">
+  <div class="container header-inner">
+    <a href="home.html" class="logo">Campus<span>Connect</span></a>
+    <div class="header-actions">
+      <button id="themeToggle" class="theme-toggle" aria-label="Toggle dark mode" type="button">
+        <span class="theme-icon theme-icon-sun">☀️</span>
+        <span class="theme-icon theme-icon-moon">🌙</span>
+      </button>
+      <button id="logoutBtn" class="btn btn-outline nav-cta" type="button">Log Out</button>
+    </div>
+  </div>
+</header>
+
+<main class="profile-page-shell">
+  <div class="container">
+    <section class="profile-page app-panel">
+      <div class="profile-cover"><span>Campus Connect member</span></div>
+      <div class="profile-page-card">
+        <div class="profile-page-avatar" id="profilePageAvatar">CC</div>
+        <p class="eyebrow">Your account</p>
+        <h1 id="profilePageName">Student</h1>
+        <p id="profilePageCampus">Main Campus</p>
+        <p class="profile-bio">Student seller and campus community member.</p>
+        <div class="profile-actions"><button class="btn btn-primary" id="profileEditAction" type="button">Edit profile</button><button class="btn btn-outline" type="button">Share profile</button></div>
+      </div>
+      <div class="profile-stats"><div><strong>3</strong><span>Listings</span></div><div><strong>0</strong><span>Reviews</span></div><div><strong>0</strong><span>Saved</span></div></div>
+      <div class="profile-tabs"><button class="is-active" type="button">Listings</button><button type="button">Saved</button><button type="button">Reviews</button></div>
+      <div class="profile-listing-grid"><div class="profile-listing-tile image-tutoring"><img src="assets/hero-poster.jpg" alt="Your tutoring listing"><span>Calc II tutoring</span></div><div class="profile-listing-tile image-fridge"><img src="assets/hero-poster.jpg" alt="Your goods listing"><span>Campus goods</span></div><div class="profile-listing-tile image-design"><img src="assets/hero-poster.jpg" alt="Your gig listing"><span>Creative gigs</span></div></div>
+    </section>
+  </div>
+</main>
+
+<nav class="bottom-nav" aria-label="Main navigation">
+  <a class="bottom-nav-item" href="home.html" aria-label="Home"><span class="bottom-nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg></span><span>Home</span></a>
+  <a class="bottom-nav-item" href="home.html" aria-label="Adverts"><span class="bottom-nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span><span>Adverts</span></a>
+  <a class="bottom-nav-item bottom-nav-post" href="home.html" aria-label="Post a listing"><span class="bottom-nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></span><span>Post</span></a>
+  <a class="bottom-nav-item" href="home.html" aria-label="Messages"><span class="bottom-nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11.5a7.5 7.5 0 0 1-8 7.5 8.5 8.5 0 0 1-4-.9L4 20l1.2-3.3A7.2 7.2 0 0 1 4 12.5 7.5 7.5 0 0 1 12 5a7.5 7.5 0 0 1 8 6.5z"/></svg></span><span>Messages</span></a>
+  <a class="bottom-nav-item is-active" href="profile.html" aria-label="Profile" aria-current="page"><span class="bottom-nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M5 20a7 7 0 0 1 14 0"/></svg></span><span>Profile</span></a>
+</nav>
+
+<script src="script.js"></script>
+<script src="profile.js"></script>
+</body>
+</html>

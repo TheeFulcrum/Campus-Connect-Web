@@ -116,6 +116,10 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('newListingTitle').focus();
         return;
       }
+      if (item.dataset.view === 'profile') {
+        window.location.href = 'profile.html';
+        return;
+      }
       showView(item.dataset.view);
     });
   });
@@ -200,7 +204,7 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
   document.getElementById('editProfileBtn').addEventListener('click', function () {
-    showView('profile');
+    window.location.href = 'profile.html';
   });
 
   document.getElementById('profileEditAction').addEventListener('click', function () {

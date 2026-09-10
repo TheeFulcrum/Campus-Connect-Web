@@ -116,15 +116,20 @@
     </div>
 
     <section class="app-panel" id="messagesView" hidden>
-      <div class="panel-heading"><div><p class="eyebrow">Stay in the loop</p><h2>Messages</h2><p>Conversations with people from your campus will appear here.</p></div><span class="panel-count">0</span></div>
-      <div class="empty-panel"><span class="empty-panel-icon">◌</span><h3>No messages yet</h3><p>Message a seller from any listing to start a conversation.</p><button class="btn btn-primary" type="button" data-return-home>Browse listings</button></div>
+      <div class="panel-heading"><div><p class="eyebrow">Stay in the loop</p><h2>Messages</h2><p>Keep every campus conversation in one place.</p></div><span class="panel-count">2</span></div>
+      <div class="conversation-list">
+        <button class="conversation-row" type="button"><span class="conversation-avatar avatar-navy">AM</span><span class="conversation-copy"><strong>Alex M.</strong><small>Is Tuesday at 17:00 okay?</small></span><time>12m</time><span class="unread-dot"></span></button>
+        <button class="conversation-row" type="button"><span class="conversation-avatar avatar-orange">TN</span><span class="conversation-copy"><strong>Tendai N.</strong><small>The mini fridge is still available.</small></span><time>34m</time><span class="unread-dot"></span></button>
+        <div class="messages-tip"><span>✦</span><p>Keep conversations in-app until you have agreed on a safe campus meeting point.</p></div>
+      </div>
     </section>
 
     <section class="app-panel" id="profileView" hidden>
-      <div class="profile-cover"></div>
-      <div class="profile-page-card"><div class="profile-page-avatar" id="profilePageAvatar">CC</div><p class="eyebrow">Your account</p><h2 id="profilePageName">Student</h2><p id="profilePageCampus">Main Campus</p><button class="btn btn-outline" type="button" id="profileEditAction">Edit profile</button></div>
-      <div class="profile-stats"><div><strong>0</strong><span>Listings</span></div><div><strong>0</strong><span>Reviews</span></div><div><strong>0</strong><span>Saved</span></div></div>
-      <div class="profile-settings"><button type="button">Account settings <span>→</span></button><button type="button">Community guidelines <span>→</span></button></div>
+      <div class="profile-cover"><span>Campus Connect member</span></div>
+      <div class="profile-page-card"><div class="profile-page-avatar" id="profilePageAvatar">CC</div><p class="eyebrow">Your account</p><h2 id="profilePageName">Student</h2><p id="profilePageCampus">Main Campus</p><p class="profile-bio">Student seller and campus community member.</p><div class="profile-actions"><button class="btn btn-primary" type="button" id="profileEditAction">Edit profile</button><button class="btn btn-outline" type="button">Share profile</button></div></div>
+      <div class="profile-stats"><div><strong>3</strong><span>Listings</span></div><div><strong>0</strong><span>Reviews</span></div><div><strong>0</strong><span>Saved</span></div></div>
+      <div class="profile-tabs"><button class="is-active" type="button">Listings</button><button type="button">Saved</button><button type="button">Reviews</button></div>
+      <div class="profile-listing-grid"><div class="profile-listing-tile image-tutoring"><img src="assets/hero-poster.jpg" alt="Your tutoring listing"><span>Calc II tutoring</span></div><div class="profile-listing-tile image-fridge"><img src="assets/hero-poster.jpg" alt="Your goods listing"><span>Campus goods</span></div><div class="profile-listing-tile image-design"><img src="assets/hero-poster.jpg" alt="Your gig listing"><span>Creative gigs</span></div></div>
     </section>
   </div>
 </main>
