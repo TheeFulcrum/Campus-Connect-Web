@@ -37,8 +37,8 @@ document.addEventListener('DOMContentLoaded', function () {
     e.preventDefault();
     const email = emailInput.value.trim();
 
-    if (!email.toLowerCase().endsWith('.education')) {
-      showMessage("Use your .education email — that's how we verify students.", 'var(--error)');
+    if (!/^\d{10}@edenuniversity\.education$/i.test(email)) {
+      showMessage('Use your 10-digit ID@edenuniversity.education email.', 'var(--error)');
       return;
     }
 

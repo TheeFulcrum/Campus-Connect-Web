@@ -20,8 +20,8 @@ if (strlen($username) < 3) {
     echo json_encode(['success' => false, 'error' => 'Username must be at least 3 characters.']);
     exit;
 }
-if (!filter_var($email, FILTER_VALIDATE_EMAIL) || !str_ends_with($email, '.education')) {
-    echo json_encode(['success' => false, 'error' => 'Please use a valid .education email.']);
+if (!preg_match('/^\d{10}@edenuniversity\.education$/i', $email)) {
+    echo json_encode(['success' => false, 'error' => 'Use your 10-digit ID@edenuniversity.education email.']);
     exit;
 }
 if (strlen($password) < 6) {
@@ -33,6 +33,10 @@ $file = __DIR__ . '/users.json';
 $users = file_exists($file) ? json_decode(file_get_contents($file), true) : [];
 
 foreach ($users as $user) {
+    if (strtolower($user['username']) === strtolower($username)) {
+        echo json_encode(['success' => false, 'error' => 'That username is already taken.']);
+        exit;
+    }
     if (strtolower($user['email']) === $email) {
         echo json_encode(['success' => false, 'error' => 'An account with this email already exists.']);
         exit;

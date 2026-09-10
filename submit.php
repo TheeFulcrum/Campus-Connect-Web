@@ -20,13 +20,8 @@ if ($email === '') {
     exit;
 }
 
-if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-    echo json_encode(['success' => false, 'error' => 'Please enter a valid email address.']);
-    exit;
-}
-
-if (!str_ends_with(strtolower($email), '.education')) {
-    echo json_encode(['success' => false, 'error' => 'Please use your .education university email.']);
+if (!preg_match('/^\d{10}@edenuniversity\.education$/i', $email)) {
+    echo json_encode(['success' => false, 'error' => 'Use your 10-digit ID@edenuniversity.education email.']);
     exit;
 }
 

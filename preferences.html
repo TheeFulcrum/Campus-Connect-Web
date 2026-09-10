@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Choose interests — Campus Connect</title>
+<link rel="stylesheet" href="style.css">
+<script>
+  (function () {
+    try {
+      var saved = localStorage.getItem('cc-theme');
+      var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', theme);
+    } catch (e) {}
+  })();
+</script>
+</head>
+<body>
+<header class="site-header">
+  <div class="container header-inner">
+    <a href="index.html" class="logo">Campus<span>Connect</span></a>
+    <button id="themeToggle" class="theme-toggle" aria-label="Toggle dark mode" type="button">
+      <span class="theme-icon theme-icon-sun">☀️</span>
+      <span class="theme-icon theme-icon-moon">🌙</span>
+    </button>
+  </div>
+</header>
+
+<main class="preferences-shell">
+  <section class="preferences-box">
+    <p class="eyebrow">Make it yours</p>
+    <h1>What do you want to see?</h1>
+    <p class="preferences-subtitle">Choose what interests you. We will use this to shape your Home feed.</p>
+
+    <form id="preferencesForm">
+      <div class="preference-groups" role="group" aria-label="Listing interests">
+        <fieldset class="preference-group"><legend><span class="preference-group-icon preference-icon-orange">◇</span> Goods</legend><div class="preference-options"><label class="preference-option"><input type="checkbox" name="interest" value="electronics"><span><strong>Electronics</strong><small>Phones, laptops, appliances, and accessories</small></span><span class="preference-check" aria-hidden="true">✓</span></label><label class="preference-option"><input type="checkbox" name="interest" value="books"><span><strong>Books</strong><small>Textbooks, notes, stationery, and study guides</small></span><span class="preference-check" aria-hidden="true">✓</span></label><label class="preference-option"><input type="checkbox" name="interest" value="furniture"><span><strong>Furniture</strong><small>Desks, chairs, fridges, and room essentials</small></span><span class="preference-check" aria-hidden="true">✓</span></label></div></fieldset>
+        <fieldset class="preference-group"><legend><span class="preference-group-icon preference-icon-green">✦</span> Services</legend><div class="preference-options"><label class="preference-option"><input type="checkbox" name="interest" value="tutoring"><span><strong>Tutoring</strong><small>Find help with courses, exams, and assignments</small></span><span class="preference-check" aria-hidden="true">✓</span></label><label class="preference-option"><input type="checkbox" name="interest" value="repairs"><span><strong>Repairs</strong><small>Tech, clothing, bikes, and everyday fixes</small></span><span class="preference-check" aria-hidden="true">✓</span></label><label class="preference-option"><input type="checkbox" name="interest" value="beauty"><span><strong>Beauty &amp; wellness</strong><small>Hair, nails, makeup, and wellness services</small></span><span class="preference-check" aria-hidden="true">✓</span></label></div></fieldset>
+        <fieldset class="preference-group"><legend><span class="preference-group-icon preference-icon-blue">↗</span> Gigs</legend><div class="preference-options"><label class="preference-option"><input type="checkbox" name="interest" value="creative"><span><strong>Creative work</strong><small>Design, photography, writing, and media</small></span><span class="preference-check" aria-hidden="true">✓</span></label><label class="preference-option"><input type="checkbox" name="interest" value="campus-help"><span><strong>Campus help</strong><small>Moving, delivery, events, and quick jobs</small></span><span class="preference-check" aria-hidden="true">✓</span></label></div></fieldset>
+      </div>
+      <p class="form-msg" id="preferencesMsg"></p>
+      <button class="btn btn-primary auth-submit" type="submit">Continue to login</button>
+      <button class="preferences-skip" id="skipPreferences" type="button">Skip for now</button>
+    </form>
+  </section>
+</main>
+
+<script src="script.js"></script>
+<script src="preferences.js"></script>
+</body>
+</html>

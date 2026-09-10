@@ -33,11 +33,11 @@
   <div class="container">
     <div class="auth-box">
       <h1>Welcome back</h1>
-      <p class="auth-subtitle">Log in with your university email</p>
+      <p class="auth-subtitle">Log in with your username or university email</p>
 
       <form id="loginForm" class="auth-form">
-        <label for="loginEmail">Email</label>
-        <input type="email" id="loginEmail" name="email" placeholder="you@edenuniversity.education" required>
+        <label for="loginIdentifier">Username or email</label>
+        <input type="text" id="loginIdentifier" name="identifier" placeholder="Username or ID@edenuniversity.education" autocomplete="username" required>
 
         <label for="loginPassword">Password</label>
         <input type="password" id="loginPassword" name="password" placeholder="Password" required>

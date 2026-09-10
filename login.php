@@ -13,11 +13,18 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-$email = isset($_POST['email']) ? trim(strtolower($_POST['email'])) : '';
+$identifier = isset($_POST['identifier'])
+    ? trim($_POST['identifier'])
+    : (isset($_POST['email']) ? trim($_POST['email']) : '');
 $password = isset($_POST['password']) ? $_POST['password'] : '';
 
-if ($email === '' || $password === '') {
-    echo json_encode(['success' => false, 'error' => 'Email and password are required.']);
+if ($identifier === '' || $password === '') {
+    echo json_encode(['success' => false, 'error' => 'Username or email and password are required.']);
+    exit;
+}
+
+if (str_contains($identifier, '@') && !preg_match('/^\d{10}@edenuniversity\.education$/i', $identifier)) {
+    echo json_encode(['success' => false, 'error' => 'Use your 10-digit ID@edenuniversity.education email.']);
     exit;
 }
 
@@ -25,10 +32,14 @@ $file = __DIR__ . '/users.json';
 $users = file_exists($file) ? json_decode(file_get_contents($file), true) : [];
 
 foreach ($users as $user) {
-    if (strtolower($user['email']) === $email && $user['password'] === $password) {
+    $emailMatches = strtolower($user['email']) === strtolower($identifier);
+    $usernameMatches = strtolower($user['username']) === strtolower($identifier);
+
+    if (($emailMatches || $usernameMatches) && $user['password'] === $password) {
         echo json_encode([
             'success' => true,
             'username' => $user['username'],
+            'email' => $user['email'],
             'campus' => $user['campus']
         ]);
         exit;

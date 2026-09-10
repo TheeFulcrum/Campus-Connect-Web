@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', function () {
 
   function isValidUniversityEmail(email) {
-    return email.toLowerCase().endsWith('.education');
+    return /^\d{10}@edenuniversity\.education$/i.test(email);
   }
 
   function showMsg(el, text, color) {
@@ -13,44 +13,36 @@ document.addEventListener('DOMContentLoaded', function () {
   const loginForm = document.getElementById('loginForm');
   if (loginForm) {
     const msg = document.getElementById('loginMsg');
+    const pendingLogin = sessionStorage.getItem('cc-pending-login');
+
+    if (pendingLogin) {
+      document.getElementById('loginIdentifier').value = pendingLogin;
+      sessionStorage.removeItem('cc-pending-login');
+      showMsg(msg, 'Account created. Enter your password to log in.', 'var(--success)');
+    }
 
     loginForm.addEventListener('submit', function (e) {
       e.preventDefault();
-      const email = document.getElementById('loginEmail').value.trim();
+      const identifier = document.getElementById('loginIdentifier').value.trim();
       const password = document.getElementById('loginPassword').value;
 
-      if (!isValidUniversityEmail(email)) {
-        showMsg(msg, 'Please use your .education university email.', 'var(--error)');
+      if (!identifier || !password) {
+        showMsg(msg, 'Enter your login details to continue.', 'var(--error)');
         return;
       }
 
       const btn = loginForm.querySelector('button');
       btn.disabled = true;
-      btn.textContent = 'Logging in...';
+      btn.textContent = 'Opening Campus Connect...';
 
-      fetch('login.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: 'email=' + encodeURIComponent(email) + '&password=' + encodeURIComponent(password)
-      })
-        .then(res => res.json())
-        .then(data => {
-          if (data.success) {
-            sessionStorage.setItem('cc-user', JSON.stringify({
-              username: data.username,
-              email: email,
-              campus: data.campus
-            }));
-            window.location.href = 'home.html';
-          } else {
-            showMsg(msg, data.error || 'Invalid email or password.', 'var(--error)');
-          }
-        })
-        .catch(() => showMsg(msg, 'Could not reach the server. Try again.', 'var(--error)'))
-        .finally(() => {
-          btn.disabled = false;
-          btn.textContent = 'Log In';
-        });
+      const isEmail = identifier.includes('@');
+      const username = isEmail ? identifier.split('@')[0] : identifier;
+      sessionStorage.setItem('cc-user', JSON.stringify({
+        username: username,
+        email: isEmail ? identifier.toLowerCase() : '',
+        campus: 'Main Campus'
+      }));
+      window.location.href = 'home.html';
     });
   }
 
@@ -72,7 +64,7 @@ document.addEventListener('DOMContentLoaded', function () {
         return;
       }
       if (!isValidUniversityEmail(email)) {
-        showMsg(msg, 'Please use your .education university email.', 'var(--error)');
+        showMsg(msg, 'Use your 10-digit ID@edenuniversity.education email.', 'var(--error)');
         return;
       }
       if (password.length < 6) {
@@ -86,34 +78,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
       const btn = signupForm.querySelector('button');
       btn.disabled = true;
-      btn.textContent = 'Creating account...';
-
-      fetch('signup.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: 'username=' + encodeURIComponent(username) +
-              '&email=' + encodeURIComponent(email) +
-              '&campus=' + encodeURIComponent(campus) +
-              '&password=' + encodeURIComponent(password)
-      })
-        .then(res => res.json())
-        .then(data => {
-          if (data.success) {
-            sessionStorage.setItem('cc-user', JSON.stringify({
-              username: username,
-              email: email,
-              campus: campus
-            }));
-            window.location.href = 'home.html';
-          } else {
-            showMsg(msg, data.error || 'Something went wrong.', 'var(--error)');
-          }
-        })
-        .catch(() => showMsg(msg, 'Could not reach the server. Try again.', 'var(--error)'))
-        .finally(() => {
-          btn.disabled = false;
-          btn.textContent = 'Sign Up';
-        });
+      btn.textContent = 'Opening Campus Connect...';
+      sessionStorage.setItem('cc-pending-signup', JSON.stringify({
+        username: username,
+        email: email,
+        campus: campus
+      }));
+      window.location.href = 'preferences.html';
     });
   }
 });

@@ -1,0 +1,18 @@
+# User data - NEVER commit this
+users.json
+
+# Node modules
+node_modules/
+
+# Environment variables
+.env
+
+# VS Code settings (optional - remove if you want to share)
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

@@ -30,15 +30,129 @@
   </div>
 </header>
 
-<section class="section auth-section">
+<main class="marketplace-shell" id="appMain">
   <div class="container">
-    <div class="auth-box home-box">
-      <h1 id="welcomeHeading">Welcome!</h1>
-      <p class="auth-subtitle" id="campusLine"></p>
-      <p class="home-placeholder">The marketplace feed will live here.</p>
+    <section class="marketplace-intro" id="feedIntro">
+      <div>
+        <p class="eyebrow" id="feedEyebrow">Your campus, in motion</p>
+        <h1 id="welcomeHeading">Welcome!</h1>
+        <p class="marketplace-subtitle" id="campusLine"></p>
+      </div>
+      <button id="createListingBtn" class="btn btn-accent create-listing-btn" type="button">
+        <span aria-hidden="true">+</span> Create listing
+      </button>
+    </section>
+
+    <section class="feed-toolbar" id="feedToolbar" aria-label="Marketplace controls">
+      <label class="search-field">
+        <span aria-hidden="true">⌕</span>
+        <input id="listingSearch" type="search" placeholder="Search your campus" aria-label="Search listings">
+      </label>
+      <div class="category-tabs" role="tablist" aria-label="Listing categories">
+        <button class="category-tab is-active" type="button" data-category="all" role="tab" aria-selected="true">For you</button>
+        <button class="category-tab" type="button" data-category="services" role="tab" aria-selected="false">Services</button>
+        <button class="category-tab" type="button" data-category="goods" role="tab" aria-selected="false">Goods</button>
+        <button class="category-tab" type="button" data-category="gigs" role="tab" aria-selected="false">Gigs</button>
+      </div>
+    </section>
+
+    <div class="marketplace-layout" id="feedView">
+      <section class="listing-feed" id="listingFeed" aria-label="Campus listings">
+        <article class="listing-card" data-preferred="true" data-category="services" data-subcategory="tutoring" data-search="calc ii tutoring math library">
+          <div class="listing-card-header">
+            <div class="seller-avatar avatar-navy">AM</div>
+            <div class="seller-details"><strong>Alex M.</strong><span>Main Campus · 12 min ago</span></div>
+            <button class="icon-button listing-menu" type="button" aria-label="More options">•••</button>
+          </div>
+          <div class="listing-image image-tutoring"><img src="assets/hero-poster.jpg" alt="Students walking across campus"></div>
+          <div class="listing-content">
+            <div class="listing-meta"><span class="listing-tag tag-green">Service</span><span class="listing-price">K50<span>/hr</span></span></div>
+            <h2>Calc II tutoring</h2>
+            <p>Patient, exam-focused help at the library. Tue and Thu evenings.</p>
+            <div class="listing-actions"><button class="feed-action like-button" type="button" aria-label="Like Calc II tutoring"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 8.6c0 5.2-8.8 10.2-8.8 10.2S3.2 13.8 3.2 8.6A4.6 4.6 0 0 1 12 6.3a4.6 4.6 0 0 1 8.8 2.3z"/></svg><b>18</b></button><button class="feed-action" type="button" data-message="Alex M."><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11.5a7.5 7.5 0 0 1-8 7.5 8.5 8.5 0 0 1-4-.9L4 20l1.2-3.3A7.2 7.2 0 0 1 4 12.5 7.5 7.5 0 0 1 12 5a7.5 7.5 0 0 1 8 6.5z"/></svg><b>Message</b></button><button class="feed-action save-button" type="button" aria-label="Save Calc II tutoring"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4.5A1.5 1.5 0 0 1 7.5 3h9A1.5 1.5 0 0 1 18 4.5V21l-6-3-6 3z"/></svg></button></div>
+          </div>
+        </article>
+
+        <article class="listing-card" data-preferred="false" data-category="goods" data-subcategory="furniture" data-search="mini fridge appliance pickup main campus furniture">
+          <div class="listing-card-header">
+            <div class="seller-avatar avatar-orange">TN</div>
+            <div class="seller-details"><strong>Tendai N.</strong><span>Great East Campus · 34 min ago</span></div>
+            <button class="icon-button listing-menu" type="button" aria-label="More options">•••</button>
+          </div>
+          <div class="listing-image image-fridge"><img src="assets/hero-poster.jpg" alt="Campus scene representing a student marketplace listing"></div>
+          <div class="listing-content">
+            <div class="listing-meta"><span class="listing-tag tag-orange">For sale</span><span class="listing-price">K450</span></div>
+            <h2>Mini fridge, barely used</h2>
+            <p>Moving out this weekend. Clean, quiet, and ready for pickup near Block C.</p>
+            <div class="listing-actions"><button class="feed-action like-button" type="button" aria-label="Like mini fridge"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 8.6c0 5.2-8.8 10.2-8.8 10.2S3.2 13.8 3.2 8.6A4.6 4.6 0 0 1 12 6.3a4.6 4.6 0 0 1 8.8 2.3z"/></svg><b>9</b></button><button class="feed-action" type="button" data-message="Tendai N."><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11.5a7.5 7.5 0 0 1-8 7.5 8.5 8.5 0 0 1-4-.9L4 20l1.2-3.3A7.2 7.2 0 0 1 4 12.5 7.5 7.5 0 0 1 12 5a7.5 7.5 0 0 1 8 6.5z"/></svg><b>Message</b></button><button class="feed-action save-button" type="button" aria-label="Save mini fridge"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4.5A1.5 1.5 0 0 1 7.5 3h9A1.5 1.5 0 0 1 18 4.5V21l-6-3-6 3z"/></svg></button></div>
+          </div>
+        </article>
+
+        <article class="listing-card" data-preferred="true" data-category="gigs" data-subcategory="creative" data-search="design logo gig creative remote">
+          <div class="listing-card-header">
+            <div class="seller-avatar avatar-green">SK</div>
+            <div class="seller-details"><strong>Sarah K.</strong><span>Main Campus · 1 hr ago</span></div>
+            <button class="icon-button listing-menu" type="button" aria-label="More options">•••</button>
+          </div>
+          <div class="listing-image image-design"><img src="assets/hero-poster.jpg" alt="Students on campus collaborating"></div>
+          <div class="listing-content">
+            <div class="listing-meta"><span class="listing-tag tag-blue">Gig</span><span class="listing-price">From K120</span></div>
+            <h2>Logo design for student clubs</h2>
+            <p>Fresh, simple logos delivered in 48 hours. Send your idea and colour palette.</p>
+            <div class="listing-actions"><button class="feed-action like-button" type="button" aria-label="Like logo design gig"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 8.6c0 5.2-8.8 10.2-8.8 10.2S3.2 13.8 3.2 8.6A4.6 4.6 0 0 1 12 6.3a4.6 4.6 0 0 1 8.8 2.3z"/></svg><b>24</b></button><button class="feed-action" type="button" data-message="Sarah K."><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11.5a7.5 7.5 0 0 1-8 7.5 8.5 8.5 0 0 1-4-.9L4 20l1.2-3.3A7.2 7.2 0 0 1 4 12.5 7.5 7.5 0 0 1 12 5a7.5 7.5 0 0 1 8 6.5z"/></svg><b>Message</b></button><button class="feed-action save-button" type="button" aria-label="Save logo design gig"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4.5A1.5 1.5 0 0 1 7.5 3h9A1.5 1.5 0 0 1 18 4.5V21l-6-3-6 3z"/></svg></button></div>
+          </div>
+        </article>
+
+        <p class="empty-feed" id="emptyFeed" hidden>No listings match that search yet.</p>
+      </section>
+
+      <aside class="marketplace-sidebar">
+        <div class="profile-mini">
+          <div class="profile-mini-top"><div class="seller-avatar avatar-navy" id="profileAvatar">CC</div><div><strong id="profileName">Campus Connect</strong><span id="profileCampus">Main Campus</span></div></div>
+          <button class="sidebar-link" type="button" id="editProfileBtn">Edit profile <span>→</span></button>
+        </div>
+        <div class="sidebar-note"><span class="note-mark">✦</span><strong>Keep it on campus</strong><p>Meet in public spaces, keep conversations in-app, and trust your instincts.</p></div>
+      </aside>
     </div>
+
+    <section class="app-panel" id="messagesView" hidden>
+      <div class="panel-heading"><div><p class="eyebrow">Stay in the loop</p><h2>Messages</h2><p>Conversations with people from your campus will appear here.</p></div><span class="panel-count">0</span></div>
+      <div class="empty-panel"><span class="empty-panel-icon">◌</span><h3>No messages yet</h3><p>Message a seller from any listing to start a conversation.</p><button class="btn btn-primary" type="button" data-return-home>Browse listings</button></div>
+    </section>
+
+    <section class="app-panel" id="profileView" hidden>
+      <div class="profile-cover"></div>
+      <div class="profile-page-card"><div class="profile-page-avatar" id="profilePageAvatar">CC</div><p class="eyebrow">Your account</p><h2 id="profilePageName">Student</h2><p id="profilePageCampus">Main Campus</p><button class="btn btn-outline" type="button" id="profileEditAction">Edit profile</button></div>
+      <div class="profile-stats"><div><strong>0</strong><span>Listings</span></div><div><strong>0</strong><span>Reviews</span></div><div><strong>0</strong><span>Saved</span></div></div>
+      <div class="profile-settings"><button type="button">Account settings <span>→</span></button><button type="button">Community guidelines <span>→</span></button></div>
+    </section>
   </div>
-</section>
+</main>
+
+<div class="modal-backdrop" id="listingModal" hidden>
+  <section class="listing-modal" role="dialog" aria-modal="true" aria-labelledby="listingModalTitle">
+    <button class="modal-close" id="closeListingModal" type="button" aria-label="Close create listing dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
+    <p class="eyebrow">Put it out there</p>
+    <h2 id="listingModalTitle">Create a listing</h2>
+    <p class="modal-subtitle">Share something useful with your campus.</p>
+    <form id="listingForm" class="listing-form">
+      <label>What are you offering?<input id="newListingTitle" type="text" placeholder="e.g. Organic Chemistry notes" required></label>
+      <label>Category<select id="newListingCategory"><option value="services">Service</option><option value="goods">For sale</option><option value="gigs">Gig</option></select></label>
+      <label>Type<select id="newListingType"><option value="tutoring">Tutoring</option><option value="electronics">Electronics</option><option value="books">Books</option><option value="furniture">Furniture</option><option value="repairs">Repairs</option><option value="beauty">Beauty &amp; wellness</option><option value="creative">Creative work</option><option value="campus-help">Campus help</option></select></label>
+      <label>Price or rate<input id="newListingPrice" type="text" placeholder="e.g. K80 or Free" required></label>
+      <label>Short description<textarea id="newListingDescription" rows="3" placeholder="Add the useful details..."></textarea></label>
+      <button class="btn btn-primary auth-submit" type="submit">Post listing</button>
+    </form>
+  </section>
+</div>
+
+<nav class="bottom-nav" aria-label="Main navigation">
+  <button class="bottom-nav-item is-active" type="button" data-view="home" aria-label="Home" aria-current="page"><span class="bottom-nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg></span><span>Home</span></button>
+  <button class="bottom-nav-item" type="button" data-view="adverts" aria-label="Adverts"><span class="bottom-nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span><span>Adverts</span></button>
+  <button class="bottom-nav-item bottom-nav-post" type="button" data-view="post" aria-label="Post a listing"><span class="bottom-nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></span><span>Post</span></button>
+  <button class="bottom-nav-item" type="button" data-view="messages" aria-label="Messages"><span class="bottom-nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11.5a7.5 7.5 0 0 1-8 7.5 8.5 8.5 0 0 1-4-.9L4 20l1.2-3.3A7.2 7.2 0 0 1 4 12.5 7.5 7.5 0 0 1 12 5a7.5 7.5 0 0 1 8 6.5z"/><path d="M8 12h.01M12 12h.01M16 12h.01"/></svg></span><span>Messages</span></button>
+  <button class="bottom-nav-item" type="button" data-view="profile" aria-label="Profile"><span class="bottom-nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M5 20a7 7 0 0 1 14 0"/></svg></span><span>Profile</span></button>
+</nav>
 
 <footer class="site-footer">
   <div class="container footer-inner">
