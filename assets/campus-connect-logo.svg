@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="logoTitle logoDesc">
+  <title id="logoTitle">Campus Connect logo</title>
+  <desc id="logoDesc">A coral graduation cap connected to a campus network</desc>
+  <g fill="none" stroke="#FF6B45" stroke-linecap="round" stroke-linejoin="round">
+    <path fill="#FF6B45" stroke="#FF6B45" d="M256 43 470 166 256 289 42 166Z"/>
+    <path fill="#FF6B45" stroke="#FF6B45" d="M129 224v36c0 40 57 72 127 72s127-32 127-72v-36l-127 74Z"/>
+    <path stroke-width="6" d="M428 166v74"/>
+    <path fill="#FF6B45" stroke="#FF6B45" d="m428 230-12 22v43h24v-43Z"/>
+    <path stroke-width="16" d="m256 295-156 85m156-85v125m0-125 156 85"/>
+  </g>
+  <g fill="#FF6B45">
+    <circle cx="256" cy="295" r="28"/>
+    <circle cx="100" cy="380" r="28"/>
+    <circle cx="256" cy="420" r="28"/>
+    <circle cx="412" cy="380" r="28"/>
+  </g>
+</svg>

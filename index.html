@@ -20,11 +20,13 @@
 
 <header class="site-header">
   <div class="container header-inner">
-    <div class="logo">Campus<span>Connect</span></div>
+    <div class="logo" aria-label="Campus Connect">
+      <img src="assets/campus-connect-logo.svg" alt="" class="logo-mark">
+      <span class="logo-wordmark">Campus<span>Connect</span></span>
+    </div>
     <nav class="nav-links">
       <a href="#features">Features</a>
       <a href="#how">How it works</a>
-      <a href="#join">Join</a>
     </nav>
     <div class="header-actions">
       <button id="themeToggle" class="theme-toggle" aria-label="Toggle dark mode" type="button">
@@ -32,7 +34,7 @@
         <span class="theme-icon theme-icon-moon">🌙</span>
       </button>
       <a href="login.html" class="btn btn-outline nav-cta">Log In</a>
-      <a href="#join" class="btn btn-accent nav-cta">Join the waitlist</a>
+      <a href="signup.html" class="btn btn-accent nav-cta">Sign Up</a>
     </div>
   </div>
 </header>
@@ -59,11 +61,11 @@
 
   <div class="container hero-inner">
     <div class="hero-text">
-      <span class="badge">.education verified · campus only</span>
+      <span class="badge" id="verificationBadge">.education verified · campus only</span>
       <h1>Your campus marketplace, finally in one app.</h1>
       <p>Post a gig, sell your old textbooks, find a tutor. Campus Connect replaces the scattered Facebook groups and WhatsApp chats with one verified, searchable app built for your university.</p>
       <div class="hero-ctas">
-        <a href="#join" class="btn btn-primary">Join the waitlist</a>
+        <a href="signup.html" class="btn btn-primary">Create an account</a>
         <a href="#how" class="btn btn-outline">See how it works</a>
       </div>
     </div>
@@ -141,27 +143,12 @@
   </div>
 </section>
 
-<section class="section" id="join">
-  <div class="container">
-    <div class="cta-box">
-      <h2>Be first on your campus</h2>
-      <p>We're rolling out one campus at a time. Drop your .education email and we'll notify you the moment Campus Connect lands on yours.</p>
-      <form id="waitlistForm" class="waitlist-form">
-        <input type="email" id="waitlistEmail" name="email" placeholder="ID@edenuniversity.education" required>
-        <button type="submit" class="btn btn-primary">Join the waitlist</button>
-      </form>
-      <p class="form-msg" id="formMsg"></p>
-    </div>
-  </div>
-</section>
-
 <footer class="site-footer">
   <div class="container footer-inner">
     <p>Campus Connect — currently piloting on select campuses. Not affiliated with your university's administration.</p>
     <nav class="footer-links">
       <a href="#features">Features</a>
       <a href="#how">How it works</a>
-      <a href="#join">Join</a>
     </nav>
   </div>
 </footer>

@@ -26,6 +26,18 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
+  const verificationBadge = document.getElementById('verificationBadge');
+  if (verificationBadge) {
+    let lastScrollY = window.scrollY;
+    window.addEventListener('scroll', function () {
+      const currentScrollY = window.scrollY;
+      const scrollingDown = currentScrollY > lastScrollY && currentScrollY > 80;
+      verificationBadge.classList.toggle('is-hidden', scrollingDown);
+      if (currentScrollY <= 24) verificationBadge.classList.remove('is-hidden');
+      lastScrollY = currentScrollY;
+    }, { passive: true });
+  }
+
   // ---- Waitlist form (only present on index.html) ----
   const form = document.getElementById('waitlistForm');
   if (!form) return;

@@ -11,8 +11,15 @@ document.addEventListener('DOMContentLoaded', function () {
   const initials = username.slice(0, 2).toUpperCase();
   const allPreferences = ['electronics', 'books', 'furniture', 'tutoring', 'repairs', 'beauty', 'creative', 'campus-help'];
   const preferenceAliases = { goods: ['electronics', 'books', 'furniture'], services: ['tutoring', 'repairs', 'beauty'], gigs: ['creative', 'campus-help'] };
-  const storedPreferences = JSON.parse(sessionStorage.getItem('cc-user-preferences') || JSON.stringify(allPreferences));
-  const savedPreferences = storedPreferences.flatMap(function (preference) { return preferenceAliases[preference] || [preference]; });
+  let storedPreferences;
+  try {
+    storedPreferences = JSON.parse(sessionStorage.getItem('cc-user-preferences') || JSON.stringify(allPreferences));
+  } catch (error) {
+    storedPreferences = allPreferences;
+  }
+  const savedPreferences = storedPreferences
+    .flatMap(function (preference) { return preferenceAliases[preference] || [preference]; })
+    .filter(function (preference) { return allPreferences.includes(preference); });
 
   document.getElementById('welcomeHeading').textContent = 'Welcome, ' + username + '!';
   document.getElementById('campusLine').textContent = 'Campus: ' + (user.campus || 'Main Campus');
@@ -39,8 +46,75 @@ document.addEventListener('DOMContentLoaded', function () {
   const bottomNavItems = document.querySelectorAll('.bottom-nav-item');
   const welcomeHeading = document.getElementById('welcomeHeading');
   const feedEyebrow = document.getElementById('feedEyebrow');
+  const conversationList = document.getElementById('conversationList');
+  const chatPanel = document.getElementById('chatPanel');
+  const chatEmpty = document.getElementById('chatEmpty');
+  const chatMessages = document.getElementById('chatMessages');
+  const chatForm = document.getElementById('chatForm');
+  const chatInput = document.getElementById('chatInput');
+  const chatName = document.getElementById('chatName');
+  const chatListing = document.getElementById('chatListing');
+  const chatAvatar = document.getElementById('chatAvatar');
   let activeCategory = 'all';
   let activeView = 'home';
+  let activeConversationId = null;
+  const conversationKey = 'cc-conversations-' + (user.email || username).toLowerCase();
+  let conversations = loadConversations();
+
+  function loadConversations() {
+    try {
+      const stored = JSON.parse(localStorage.getItem(conversationKey) || 'null');
+      return stored || [
+        { id: 'alex-tutoring', name: 'Alex M.', initials: 'AM', avatar: 'avatar-navy', listing: 'Calc II tutoring', time: '12m', unread: true, messages: [{ text: 'Is Tuesday at 17:00 okay?', mine: false }] },
+        { id: 'tendai-fridge', name: 'Tendai N.', initials: 'TN', avatar: 'avatar-orange', listing: 'Mini fridge, barely used', time: '34m', unread: true, messages: [{ text: 'The mini fridge is still available.', mine: false }] }
+      ];
+    } catch (error) { return []; }
+  }
+
+  function saveConversations() { localStorage.setItem(conversationKey, JSON.stringify(conversations)); }
+
+  function renderConversations() {
+    const unreadCount = conversations.filter(function (conversation) { return conversation.unread; }).length;
+    messagesView.querySelector('.panel-count').textContent = unreadCount;
+    conversationList.innerHTML = conversations.map(function (conversation) {
+      const latest = conversation.messages[conversation.messages.length - 1];
+      return '<button class="conversation-row' + (conversation.id === activeConversationId ? ' is-active' : '') + '" type="button" data-conversation-id="' + escapeHtml(conversation.id) + '"><span class="conversation-avatar ' + escapeHtml(conversation.avatar) + '">' + escapeHtml(conversation.initials) + '</span><span class="conversation-copy"><strong>' + escapeHtml(conversation.name) + '</strong><small>' + escapeHtml(latest ? latest.text : 'Start a conversation') + '</small></span><time>' + escapeHtml(conversation.time || 'now') + '</time>' + (conversation.unread ? '<span class="unread-dot"></span>' : '') + '</button>';
+    }).join('');
+    conversationList.querySelectorAll('[data-conversation-id]').forEach(function (row) {
+      row.addEventListener('click', function () { openConversation(row.dataset.conversationId); });
+    });
+  }
+
+  function openConversation(id) {
+    const conversation = conversations.find(function (item) { return item.id === id; });
+    if (!conversation) return;
+    activeConversationId = id;
+    conversation.unread = false;
+    chatName.textContent = conversation.name;
+    chatListing.textContent = conversation.listing;
+    chatAvatar.textContent = conversation.initials;
+    chatAvatar.className = 'conversation-avatar ' + conversation.avatar;
+    chatMessages.innerHTML = conversation.messages.map(function (message) {
+      return '<div class="chat-bubble' + (message.mine ? ' is-mine' : '') + '">' + escapeHtml(message.text) + '</div>';
+    }).join('');
+    chatPanel.hidden = false;
+    chatEmpty.hidden = true;
+    renderConversations();
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+  }
+
+  renderConversations();
+  chatForm.addEventListener('submit', function (event) {
+    event.preventDefault();
+    const text = chatInput.value.trim();
+    const conversation = conversations.find(function (item) { return item.id === activeConversationId; });
+    if (!text || !conversation) return;
+    conversation.messages.push({ text: text, mine: true });
+    conversation.time = 'now';
+    saveConversations();
+    chatInput.value = '';
+    openConversation(conversation.id);
+  });
 
   function filterListings() {
     const query = searchInput.value.trim().toLowerCase();
@@ -73,7 +147,8 @@ document.addEventListener('DOMContentLoaded', function () {
   searchInput.addEventListener('input', filterListings);
   filterListings();
 
-  function showView(view) {
+  function showView(view, updateRoute) {
+    if (updateRoute === undefined) updateRoute = true;
     activeView = view;
     const isFeed = view === 'home' || view === 'adverts';
     feedIntro.hidden = !isFeed;
@@ -106,18 +181,19 @@ document.addEventListener('DOMContentLoaded', function () {
       });
       filterListings();
     }
+    if (updateRoute && window.location.hash !== '#' + view) {
+      window.history.pushState({ view: view }, '', '#' + view);
+    }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   bottomNavItems.forEach(function (item) {
     item.addEventListener('click', function () {
+      if (!item.dataset.view) return;
       if (item.dataset.view === 'post') {
+        window.history.pushState({ view: 'post' }, '', '#post');
         modal.hidden = false;
         document.getElementById('newListingTitle').focus();
-        return;
-      }
-      if (item.dataset.view === 'profile') {
-        window.location.href = 'profile.html';
         return;
       }
       showView(item.dataset.view);
@@ -145,7 +221,16 @@ document.addEventListener('DOMContentLoaded', function () {
 
   document.querySelectorAll('[data-message]').forEach(function (button) {
     button.addEventListener('click', function () {
-      window.alert('Messaging with ' + button.dataset.message + ' will be available in the next build.');
+      const card = button.closest('.listing-card');
+      const listing = card ? card.querySelector('h2').textContent : 'Campus listing';
+      let conversation = conversations.find(function (item) { return item.name === button.dataset.message; });
+      if (!conversation) {
+        conversation = { id: Date.now().toString(), name: button.dataset.message, initials: button.dataset.message.slice(0, 2).toUpperCase(), avatar: 'avatar-navy', listing: listing, time: 'now', unread: false, messages: [] };
+        conversations.unshift(conversation);
+        saveConversations();
+      }
+      showView('messages');
+      openConversation(conversation.id);
     });
   });
 
@@ -170,6 +255,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function closeModal() {
     modal.hidden = true;
+    if (window.location.hash === '#post') {
+      window.history.pushState({ view: activeView }, '', '#' + activeView);
+    }
   }
 
   document.getElementById('createListingBtn').addEventListener('click', function () {
@@ -180,6 +268,21 @@ document.addEventListener('DOMContentLoaded', function () {
   modal.addEventListener('click', function (event) {
     if (event.target === modal) closeModal();
   });
+
+  function applyRoute() {
+    const route = window.location.hash.slice(1) || 'home';
+    if (route === 'post') {
+      showView(activeView, false);
+      modal.hidden = false;
+      return;
+    }
+    const supportedRoutes = ['home', 'adverts', 'messages', 'profile'];
+    showView(supportedRoutes.includes(route) ? route : 'home', false);
+  }
+
+  window.addEventListener('popstate', applyRoute);
+  window.addEventListener('hashchange', applyRoute);
+  applyRoute();
 
   listingForm.addEventListener('submit', function (event) {
     event.preventDefault();
@@ -204,11 +307,23 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
   document.getElementById('editProfileBtn').addEventListener('click', function () {
-    window.location.href = 'profile.html';
+    showView('profile');
   });
 
   document.getElementById('profileEditAction').addEventListener('click', function () {
-    window.alert('Profile editing will be available in the next build.');
+    document.getElementById('profileUsername').value = username;
+    document.getElementById('profileCampusInput').value = user.campus || 'Main Campus';
+    document.getElementById('profileBioInput').value = user.bio || 'Student seller and campus community member.';
+    document.getElementById('profileModal').hidden = false;
+  });
+
+  document.getElementById('closeProfileModal').addEventListener('click', function () { document.getElementById('profileModal').hidden = true; });
+  document.getElementById('profileModal').addEventListener('click', function (event) { if (event.target.id === 'profileModal') event.currentTarget.hidden = true; });
+  document.getElementById('profileForm').addEventListener('submit', function (event) {
+    event.preventDefault();
+    const updatedUser = { username: document.getElementById('profileUsername').value.trim(), email: user.email, campus: document.getElementById('profileCampusInput').value, bio: document.getElementById('profileBioInput').value.trim() };
+    sessionStorage.setItem('cc-user', JSON.stringify(updatedUser));
+    window.location.reload();
   });
 
   function escapeHtml(value) {
