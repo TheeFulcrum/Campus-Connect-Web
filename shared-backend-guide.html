@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Campus Connect Shared Backend and Database Plan</title>
+<style>
+body { font-family: Arial, sans-serif; color: #1D1B16; line-height: 1.45; margin: 42px; }
+h1 { color: #243B6B; font-size: 28px; }
+h2 { color: #243B6B; border-bottom: 1px solid #E4E1D8; padding-bottom: 5px; margin-top: 28px; }
+h3 { color: #182747; margin-top: 20px; }
+.subtitle { color: #6B6558; font-size: 15px; }
+.callout { background: #F7F6F2; border-left: 5px solid #FF6B45; padding: 12px 16px; }
+code, pre { font-family: "Courier New", monospace; }
+pre { background: #F7F6F2; border: 1px solid #E4E1D8; padding: 12px; white-space: pre-wrap; }
+table { border-collapse: collapse; width: 100%; margin: 12px 0; }
+th { background: #243B6B; color: white; text-align: left; }
+th, td { border: 1px solid #E4E1D8; padding: 8px; vertical-align: top; }
+li { margin: 5px 0; }
+.small { color: #6B6558; font-size: 12px; }
+</style>
+</head>
+<body>
+<h1>Campus Connect: Shared Backend and Database Plan</h1>
+<p class="subtitle">Implementation guide for the Campus Connect website and native Android application</p>
+
+<div class="callout"><strong>Objective:</strong> make the PHP website and Android app use the same accounts, listings, messages, verification state, and marketplace data through one API and one hosted database.</div>
+
+<h2>1. Target Architecture</h2>
+<pre>Website JavaScript  ----\
+                       PHP REST API ---- MySQL or MariaDB
+Android Retrofit   ----/
+
+Android SQLite/Room: local cache only, not the authoritative database</pre>
+<p>The website currently stores accounts in <code>users.json</code>. The Android app currently stores users and posts in local SQLite. Replace both as the source of truth with a server-side database. Android may retain Room or SQLite for offline caching after the API is working.</p>
+
+<h2>2. Recommended Technology</h2>
+<ul>
+<li><strong>Backend:</strong> PHP 8.2+ using PDO and JSON API responses.</li>
+<li><strong>Database:</strong> MySQL or MariaDB on a hosted server.</li>
+<li><strong>Website:</strong> JavaScript <code>fetch()</code> calls to the API.</li>
+<li><strong>Android:</strong> Retrofit and OkHttp.</li>
+<li><strong>Authentication:</strong> HTTPS, hashed passwords, email verification, access tokens, and refresh tokens.</li>
+</ul>
+
+<h2>3. Core Database Schema</h2>
+<pre>CREATE TABLE users (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(30) NOT NULL UNIQUE,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    campus VARCHAR(120) NOT NULL,
+    is_verified BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE verification_tokens (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT UNSIGNED NOT NULL,
+    token_hash VARCHAR(255) NOT NULL,
+    expires_at DATETIME NOT NULL,
+    used_at DATETIME NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE listings (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT UNSIGNED NOT NULL,
+    title VARCHAR(160) NOT NULL,
+    description TEXT NOT NULL,
+    category VARCHAR(50) NOT NULL,
+    price DECIMAL(10,2) NULL,
+    campus VARCHAR(120) NOT NULL,
+    status ENUM('active','reserved','sold','removed') DEFAULT 'active',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE conversations (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    listing_id BIGINT UNSIGNED NULL,
+    buyer_id BIGINT UNSIGNED NOT NULL,
+    seller_id BIGINT UNSIGNED NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE SET NULL,
+    FOREIGN KEY (buyer_id) REFERENCES users(id),
+    FOREIGN KEY (seller_id) REFERENCES users(id)
+);
+
+CREATE TABLE messages (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    conversation_id BIGINT UNSIGNED NOT NULL,
+    sender_id BIGINT UNSIGNED NOT NULL,
+    body TEXT NOT NULL,
+    read_at DATETIME NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE,
+    FOREIGN KEY (sender_id) REFERENCES users(id)
+);</pre>
+
+<h3>Later tables</h3>
+<p>Add <code>listing_images</code>, <code>likes</code>, <code>saved_listings</code>, <code>comments</code>, <code>reviews</code>, <code>notifications</code>, <code>reports</code>, and <code>blocked_users</code> after the core workflow is stable.</p>
+
+<h2>4. API Folder Structure</h2>
+<pre>api/
+  config/database.php
+  auth/signup.php
+  auth/login.php
+  auth/verify-email.php
+  auth/logout.php
+  listings/list.php
+  listings/create.php
+  listings/update.php
+  messages/conversations.php
+  messages/messages.php
+  messages/send.php</pre>
+
+<h2>5. Initial API Endpoints</h2>
+<table>
+<tr><th>Method</th><th>Endpoint</th><th>Purpose</th></tr>
+<tr><td>POST</td><td>/api/auth/signup.php</td><td>Create an unverified student account.</td></tr>
+<tr><td>POST</td><td>/api/auth/login.php</td><td>Authenticate a user and return an access token.</td></tr>
+<tr><td>POST</td><td>/api/auth/verify-email.php</td><td>Confirm the .education email address.</td></tr>
+<tr><td>GET</td><td>/api/listings/list.php</td><td>Return campus listings with filters.</td></tr>
+<tr><td>POST</td><td>/api/listings/create.php</td><td>Create a listing for a verified user.</td></tr>
+<tr><td>GET</td><td>/api/messages/conversations.php</td><td>Return the signed-in user's conversations.</td></tr>
+<tr><td>POST</td><td>/api/messages/send.php</td><td>Send a message inside a conversation.</td></tr>
+</table>
+
+<h2>6. Secure Signup and Login</h2>
+<p>Use server-side validation for every request. Never trust validation performed only by Android or browser JavaScript.</p>
+<pre>$passwordHash = password_hash($password, PASSWORD_DEFAULT);
+
+$stmt = $pdo-&gt;prepare(
+    'INSERT INTO users (username, email, password_hash, campus)
+     VALUES (?, ?, ?, ?)'
+);
+$stmt-&gt;execute([$username, strtolower($email), $passwordHash, $campus]);</pre>
+<p>During login, find the user by email or username and verify the password with <code>password_verify()</code>. Never send the password or password hash back to either client.</p>
+
+<h2>7. .education Email Verification</h2>
+<ol>
+<li>Accept only the required institutional email format on the server.</li>
+<li>Create the account with <code>is_verified = false</code>.</li>
+<li>Generate a random, single-use verification token.</li>
+<li>Store only a hash of the token and an expiry time.</li>
+<li>Send a verification link to the student email.</li>
+<li>Set <code>is_verified = true</code> when the link is used.</li>
+<li>Restrict posting and messaging until verification is complete.</li>
+</ol>
+
+<h2>8. Connecting the Website</h2>
+<pre>const response = await fetch('/api/auth/login.php', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ identifier, password })
+});
+
+const result = await response.json();
+if (result.success) {
+  localStorage.setItem('accessToken', result.accessToken);
+}</pre>
+<p>Replace the current direct <code>users.json</code> logic in <code>login.php</code> and <code>signup.php</code> with database queries through PDO.</p>
+
+<h2>9. Connecting Android</h2>
+<p>Add Retrofit, its JSON converter, and OkHttp to the app module. Define API request and response classes, then replace authentication and post creation in <code>DatabaseHelper</code> with API calls.</p>
+<pre>public interface CampusConnectApi {
+    @POST("auth/login.php")
+    Call&lt;LoginResponse&gt; login(@Body LoginRequest request);
+
+    @GET("listings/list.php")
+    Call&lt;List&lt;Listing&gt;&gt; getListings(@Query("campus") String campus);
+
+    @POST("listings/create.php")
+    Call&lt;Listing&gt; createListing(@Body CreateListingRequest request);
+
+    @POST("messages/send.php")
+    Call&lt;Message&gt; sendMessage(@Body SendMessageRequest request);
+}</pre>
+<p>Store tokens using secure Android storage backed by the Android Keystore. Keep local SQLite or Room for cached listings and offline UI, not for authoritative user accounts.</p>
+
+<h2>10. Migration Plan</h2>
+<ol>
+<li>Create the MySQL database and tables.</li>
+<li>Update PHP signup and login to use PDO and password hashes.</li>
+<li>Import existing <code>users.json</code> users and require password resets because their old passwords are plaintext.</li>
+<li>Build and test the authentication endpoints with the website first.</li>
+<li>Add Retrofit to Android and connect Android login/signup.</li>
+<li>Move Android posts to the listings API.</li>
+<li>Add listing-based conversations and messages.</li>
+<li>Remove production dependence on <code>users.json</code>.</li>
+</ol>
+
+<h2>11. Security Requirements</h2>
+<ul>
+<li>Use HTTPS in production.</li>
+<li>Use prepared SQL statements everywhere.</li>
+<li>Hash passwords with <code>password_hash()</code>.</li>
+<li>Validate authorization on every protected endpoint.</li>
+<li>Rate-limit login, signup, verification, and messaging.</li>
+<li>Validate and safely resize uploaded images.</li>
+<li>Implement report, block, and moderation actions.</li>
+<li>Never log passwords, tokens, or private message bodies.</li>
+</ul>
+
+<h2>12. Recommended Implementation Order</h2>
+<ol>
+<li>Database connection and users table.</li>
+<li>Signup, login, and verification API.</li>
+<li>Shared website authentication.</li>
+<li>Android Retrofit authentication.</li>
+<li>Listings API and feed synchronization.</li>
+<li>Listing-based messaging.</li>
+<li>Likes, saves, comments, reviews, and notifications.</li>
+</ol>
+
+<p class="small">Campus Connect uses the existing brand palette: navy #243B6B, orange #FF6B45, green #2E9E6E, warm background #F7F6F2, and white surfaces.</p>
+</body>
+</html>

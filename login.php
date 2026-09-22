@@ -1,11 +1,14 @@
 <?php
-// login.php — validates credentials against users.json
-// NOTE: prototype-stage only. Passwords are stored in plaintext in
-// users.json, same caveat as the Android app's SQLite database.
-// Do not use this approach for real users without hashing (password_hash)
-// and a proper server-side session mechanism.
+// login.php — validates credentials against users.json and starts a server session.
+require __DIR__ . '/auth_lib.php';
 
 header('Content-Type: application/json');
+session_set_cookie_params([
+    'httponly' => true,
+    'samesite' => 'Lax',
+    'secure' => !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off'
+]);
+session_start();
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
@@ -23,27 +26,17 @@ if ($identifier === '' || $password === '') {
     exit;
 }
 
-if (str_contains($identifier, '@') && !preg_match('/^\d{10}@edenuniversity\.education$/i', $identifier)) {
+if (str_contains($identifier, '@') && !ccw_valid_email($identifier)) {
     echo json_encode(['success' => false, 'error' => 'Use your 10-digit ID@edenuniversity.education email.']);
     exit;
 }
 
-$file = __DIR__ . '/users.json';
-$users = file_exists($file) ? json_decode(file_get_contents($file), true) : [];
-
-foreach ($users as $user) {
-    $emailMatches = strtolower($user['email']) === strtolower($identifier);
-    $usernameMatches = strtolower($user['username']) === strtolower($identifier);
-
-    if (($emailMatches || $usernameMatches) && $user['password'] === $password) {
-        echo json_encode([
-            'success' => true,
-            'username' => $user['username'],
-            'email' => $user['email'],
-            'campus' => $user['campus']
-        ]);
-        exit;
-    }
+$result = ccw_authenticate_user($identifier, $password);
+if (isset($result['error'])) {
+    echo json_encode(['success' => false, 'error' => $result['error']]);
+    exit;
 }
 
-echo json_encode(['success' => false, 'error' => 'Invalid email or password.']);
+session_regenerate_id(true);
+$_SESSION['user'] = $result['user'];
+echo json_encode(['success' => true] + $result['user']);

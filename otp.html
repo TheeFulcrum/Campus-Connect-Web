@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Email Code Login - Campus Connect</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="site-header">
+  <div class="container header-inner">
+    <a href="index.html" class="logo" aria-label="Campus Connect home">
+      <img src="assets/campus-connect-logo.svg" alt="" class="logo-mark">
+      <span class="logo-wordmark">Campus<span>Connect</span></span>
+    </a>
+  </div>
+</header>
+
+<main class="section auth-section">
+  <div class="container">
+    <div class="auth-box">
+      <img src="assets/campus-connect-logo.svg" alt="Campus Connect" class="auth-logo">
+      <h1>Sign in with email</h1>
+      <p class="auth-subtitle">We will send a six-digit code to your university email.</p>
+
+      <form id="otpRequestForm" class="auth-form">
+        <label for="otpEmail">University email</label>
+        <input type="email" id="otpEmail" autocomplete="email" placeholder="ID@edenuniversity.education" required>
+        <p class="form-msg" id="otpRequestMsg"></p>
+        <button type="submit" class="btn btn-primary auth-submit">Email me a code</button>
+      </form>
+
+      <form id="otpVerifyForm" class="auth-form" hidden>
+        <label for="otpCode">Six-digit code</label>
+        <input type="text" id="otpCode" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" placeholder="123456" required>
+        <p class="form-msg" id="otpVerifyMsg"></p>
+        <button type="submit" class="btn btn-primary auth-submit">Verify and sign in</button>
+        <button type="button" class="btn btn-outline auth-submit" id="otpStartOver">Use another email</button>
+      </form>
+
+      <p class="auth-switch"><a href="login.html">Use password login</a></p>
+    </div>
+  </div>
+</main>
+
+<script src="otp.js"></script>
+</body>
+</html>

@@ -1,15 +1,21 @@
 # User data - NEVER commit this
 users.json
 waitlist.csv
+auth_tokens.json
+otp_codes.json
 
 # Node modules
 node_modules/
 
 # Environment variables
 .env
+.env.*
+*.env
+**/*.env
 
 # VS Code settings (optional - remove if you want to share)
 .vscode/
+*.code-workspace
 
 # OS files
 .DS_Store

@@ -12,9 +12,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function finishPreferences(interests) {
     sessionStorage.setItem('cc-user-preferences', JSON.stringify(interests));
-    sessionStorage.setItem('cc-pending-login', pendingSignup.username);
     sessionStorage.removeItem('cc-pending-signup');
-    window.location.href = 'login.html';
+    sessionStorage.setItem('cc-welcome-splash', pendingSignup.username);
+    window.location.href = 'home.html';
   }
 
   form.addEventListener('submit', function (event) {

@@ -27,6 +27,15 @@
         <span class="theme-icon theme-icon-sun">☀️</span>
         <span class="theme-icon theme-icon-moon">🌙</span>
       </button>
+      <div class="profile-menu-wrap">
+        <button class="profile-menu-button" id="profileMenuButton" type="button" aria-label="Open profile menu" aria-expanded="false" aria-controls="profileMenu">
+          <span></span><span></span><span></span>
+        </button>
+        <div class="profile-menu" id="profileMenu" hidden>
+          <button type="button" data-profile-menu-action="settings">Settings</button>
+          <button type="button" data-profile-menu-action="edit">Edit profile</button>
+        </div>
+      </div>
       <button id="logoutBtn" class="btn btn-outline nav-cta" type="button">Log Out</button>
     </div>
   </div>
@@ -48,6 +57,15 @@
       <div class="profile-tabs"><button class="is-active" type="button" data-profile-tab="listings">Listings</button><button type="button" data-profile-tab="saved">Saved</button><button type="button" data-profile-tab="reviews">Reviews</button></div>
       <div class="profile-listing-grid" id="profileListings"><div class="profile-listing-tile image-tutoring"><img src="assets/hero-poster.jpg" alt="Your tutoring listing"><span>Calc II tutoring</span></div><div class="profile-listing-tile image-fridge"><img src="assets/hero-poster.jpg" alt="Your goods listing"><span>Campus goods</span></div><div class="profile-listing-tile image-design"><img src="assets/hero-poster.jpg" alt="Your gig listing"><span>Creative gigs</span></div></div>
       <div class="empty-panel profile-tab-empty" id="profileTabEmpty" hidden><div class="empty-panel-icon">✦</div><h3 id="profileEmptyTitle">No saved listings yet</h3><p id="profileEmptyText">Save useful campus listings and they will appear here.</p></div>
+      <section class="profile-settings" aria-labelledby="profileSettingsTitle">
+        <button class="profile-settings-heading" id="settingsToggle" type="button" aria-expanded="false" aria-controls="profileSettingsList"><span><span class="eyebrow">Personalise your experience</span><strong id="profileSettingsTitle">Settings</strong></span><span class="settings-chevron" aria-hidden="true">⌄</span></button>
+        <div class="profile-settings-list" id="profileSettingsList" hidden>
+          <label class="profile-setting-row"><span><strong>Activity notifications</strong><small>Get updates about messages and listings.</small></span><input type="checkbox" id="settingNotifications"><span class="setting-switch" aria-hidden="true"></span></label>
+          <label class="profile-setting-row"><span><strong>Motion effects</strong><small>Use animations in the interface.</small></span><input type="checkbox" id="settingMotion"><span class="setting-switch" aria-hidden="true"></span></label>
+          <a class="profile-setting-row profile-setting-link" href="preferences.html"><span><strong>Feed interests</strong><small>Update the categories used for your Home feed.</small></span><span aria-hidden="true">&rarr;</span></a>
+          <button class="profile-setting-row profile-setting-danger" id="clearLocalData" type="button"><span><strong>Clear local data</strong><small>Remove saved preferences and conversations from this browser.</small></span><span aria-hidden="true">&times;</span></button>
+        </div>
+      </section>
     </section>
   </div>
 </main>

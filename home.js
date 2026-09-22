@@ -6,7 +6,24 @@ document.addEventListener('DOMContentLoaded', function () {
     return;
   }
 
-  const user = JSON.parse(raw);
+  let user;
+  try {
+    user = JSON.parse(raw);
+  } catch (error) {
+    window.location.href = 'login.html';
+    return;
+  }
+
+  fetch('session.php')
+    .then(function (response) { return response.ok ? response.json() : Promise.reject(); })
+    .then(function (result) {
+      user = result.user;
+      sessionStorage.setItem('cc-user', JSON.stringify(user));
+    })
+    .catch(function () {
+      sessionStorage.removeItem('cc-user');
+      window.location.href = 'login.html';
+    });
   const username = user.username || 'Student';
   const initials = username.slice(0, 2).toUpperCase();
   const allPreferences = ['electronics', 'books', 'furniture', 'tutoring', 'repairs', 'beauty', 'creative', 'campus-help'];
@@ -21,7 +38,6 @@ document.addEventListener('DOMContentLoaded', function () {
     .flatMap(function (preference) { return preferenceAliases[preference] || [preference]; })
     .filter(function (preference) { return allPreferences.includes(preference); });
 
-  document.getElementById('welcomeHeading').textContent = 'Welcome, ' + username + '!';
   document.getElementById('campusLine').textContent = 'Campus: ' + (user.campus || 'Main Campus');
   document.getElementById('profileName').textContent = username;
   document.getElementById('profileCampus').textContent = user.campus || 'Main Campus';
@@ -31,12 +47,16 @@ document.addEventListener('DOMContentLoaded', function () {
   document.getElementById('profilePageCampus').textContent = user.campus || 'Main Campus';
 
   document.getElementById('logoutBtn').addEventListener('click', function () {
-    sessionStorage.removeItem('cc-user');
-    window.location.href = 'index.html';
+    fetch('logout.php', { method: 'POST' }).finally(function () {
+      sessionStorage.removeItem('cc-user');
+      window.location.href = 'index.html';
+    });
   });
 
   const tabs = document.querySelectorAll('.category-tab');
   const searchInput = document.getElementById('listingSearch');
+  const searchNavButton = document.getElementById('searchNavButton');
+  const searchNavPopover = document.getElementById('searchNavPopover');
   const emptyFeed = document.getElementById('emptyFeed');
   const feedIntro = document.getElementById('feedIntro');
   const feedToolbar = document.getElementById('feedToolbar');
@@ -44,7 +64,6 @@ document.addEventListener('DOMContentLoaded', function () {
   const messagesView = document.getElementById('messagesView');
   const profileView = document.getElementById('profileView');
   const bottomNavItems = document.querySelectorAll('.bottom-nav-item');
-  const welcomeHeading = document.getElementById('welcomeHeading');
   const feedEyebrow = document.getElementById('feedEyebrow');
   const conversationList = document.getElementById('conversationList');
   const chatPanel = document.getElementById('chatPanel');
@@ -60,6 +79,15 @@ document.addEventListener('DOMContentLoaded', function () {
   let activeConversationId = null;
   const conversationKey = 'cc-conversations-' + (user.email || username).toLowerCase();
   let conversations = loadConversations();
+
+  if (searchNavButton && searchNavPopover) {
+    searchNavButton.addEventListener('click', function () {
+      const isOpen = !searchNavPopover.hidden;
+      searchNavPopover.hidden = isOpen;
+      searchNavButton.setAttribute('aria-expanded', String(!isOpen));
+      if (!isOpen) searchInput.focus();
+    });
+  }
 
   function loadConversations() {
     try {
@@ -164,11 +192,10 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     if (view === 'home') {
-      welcomeHeading.textContent = 'Welcome, ' + username + '!';
-      feedEyebrow.textContent = 'Your campus, in motion';
+      feedEyebrow.textContent = 'One App, Every Hustle';
       activeCategory = 'all';
     } else if (view === 'adverts') {
-      welcomeHeading.textContent = 'All adverts';
+      feedEyebrow.textContent = 'Everything happening on campus';
       feedEyebrow.textContent = 'Everything happening on campus';
       activeCategory = 'all';
     }

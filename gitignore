@@ -1,5 +1,6 @@
 # Waitlist signups contain real student emails — never commit this
 waitlist.csv
+auth_tokens.json
 
 # OS / editor junk
 .DS_Store
