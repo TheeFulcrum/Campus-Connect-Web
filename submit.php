@@ -1,4 +1,6 @@
 <?php
+require __DIR__ . '/auth_lib.php';
+
 // submit.php — handles waitlist signups for Campus Connect
 // Stores emails in waitlist.csv (one per line). Swap this out for a
 // database or mail service later on if you want.
@@ -25,14 +27,24 @@ if (!preg_match('/^\d{10}@edenuniversity\.education$/i', $email)) {
     exit;
 }
 
-// Store the signup
-$file = __DIR__ . '/waitlist.csv';
+// Store the signup outside the web root
+$file = ccw_data_file('waitlist.csv');
+if ($file === null) {
+    http_response_code(500);
+    echo json_encode(['success' => false, 'error' => 'Unable to access private storage.']);
+    exit;
+}
 $entry = date('Y-m-d H:i:s') . ',' . $email . PHP_EOL;
 
 // Avoid duplicate entries
-$existing = file_exists($file) ? file_get_contents($file) : '';
+$existing = is_file($file) ? @file_get_contents($file) : '';
 if (strpos($existing, ',' . $email . PHP_EOL) === false && strpos($existing, ',' . $email) === false) {
-    file_put_contents($file, $entry, FILE_APPEND | LOCK_EX);
+    if (@file_put_contents($file, $entry, FILE_APPEND | LOCK_EX) === false) {
+        http_response_code(500);
+        echo json_encode(['success' => false, 'error' => 'Unable to save your signup. Please try again.']);
+        exit;
+    }
+    @chmod($file, 0600);
 }
 
 // Optional: send yourself a notification email

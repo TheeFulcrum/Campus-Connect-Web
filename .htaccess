@@ -1,0 +1,3 @@
+<FilesMatch "^(users\.json|auth_tokens\.json|otp_codes\.json|waitlist\.csv|\.env.*)$">
+    Require all denied
+</FilesMatch>

@@ -38,7 +38,7 @@ function ccw_data_file(string $name): ?string {
     static $directory = null;
     static $available = null;
 
-    if (!in_array($name, ['users.json', 'auth_tokens.json', 'otp_codes.json'], true)) return null;
+    if (!in_array($name, ['users.json', 'auth_tokens.json', 'otp_codes.json', 'waitlist.csv'], true)) return null;
     if ($available === null) {
         ccw_load_environment();
         $documentRoot = realpath($_SERVER['DOCUMENT_ROOT'] ?? __DIR__);
