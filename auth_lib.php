@@ -1,8 +1,5 @@
 <?php
 
-const CCW_USERS_FILE = __DIR__ . '/users.json';
-const CCW_TOKENS_FILE = __DIR__ . '/auth_tokens.json';
-const CCW_OTP_FILE = __DIR__ . '/otp_codes.json';
 const CCW_TOKEN_TTL_SECONDS = 60 * 60 * 24 * 30;
 const CCW_OTP_TTL_SECONDS = 60 * 10;
 const CCW_OTP_RESEND_SECONDS = 60;
@@ -37,17 +34,55 @@ function ccw_environment(string $name): string {
     return is_string($value) ? trim($value) : '';
 }
 
-function ccw_read_json(string $path): array {
-    if (!file_exists($path)) {
+function ccw_data_file(string $name): ?string {
+    static $directory = null;
+    static $available = null;
+
+    if (!in_array($name, ['users.json', 'auth_tokens.json', 'otp_codes.json'], true)) return null;
+    if ($available === null) {
+        ccw_load_environment();
+        $documentRoot = realpath($_SERVER['DOCUMENT_ROOT'] ?? __DIR__);
+        $configuredDirectory = ccw_environment('CCW_DATA_DIR');
+        $directory = $configuredDirectory !== ''
+            ? $configuredDirectory
+            : dirname($documentRoot !== false ? $documentRoot : __DIR__) . DIRECTORY_SEPARATOR . 'campus-connect-data';
+        if (!is_dir($directory) && !@mkdir($directory, 0700, true) && !is_dir($directory)) {
+            $available = false;
+        } else {
+            @chmod($directory, 0700);
+            $directory = realpath($directory);
+            $documentRootPrefix = $documentRoot !== false ? rtrim($documentRoot, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR : '';
+            $available = $directory !== false && ($documentRoot === false || ($directory !== $documentRoot && !str_starts_with($directory . DIRECTORY_SEPARATOR, $documentRootPrefix)));
+        }
+    }
+    if (!$available) return null;
+
+    $path = $directory . DIRECTORY_SEPARATOR . $name;
+    $legacyPath = __DIR__ . DIRECTORY_SEPARATOR . $name;
+    if (!file_exists($path) && is_file($legacyPath)) {
+        if (!@rename($legacyPath, $path)) return null;
+        @chmod($path, 0600);
+    }
+    return $path;
+}
+
+function ccw_read_json(?string $path): array {
+    if ($path === null || !is_file($path)) {
         return [];
     }
 
-    $data = json_decode(file_get_contents($path), true);
+    $contents = @file_get_contents($path);
+    if (!is_string($contents)) return [];
+    $data = json_decode($contents, true);
     return is_array($data) ? $data : [];
 }
 
-function ccw_write_json(string $path, array $data): bool {
-    return file_put_contents($path, json_encode($data, JSON_PRETTY_PRINT), LOCK_EX) !== false;
+function ccw_write_json(?string $path, array $data): bool {
+    if ($path === null) return false;
+    $contents = json_encode($data, JSON_PRETTY_PRINT);
+    if ($contents === false || @file_put_contents($path, $contents, LOCK_EX) === false) return false;
+    @chmod($path, 0600);
+    return true;
 }
 
 function ccw_valid_email(string $email): bool {
@@ -64,7 +99,7 @@ function ccw_register_user(string $username, string $email, string $campus, stri
     if (strlen($password) < 8) return ['error' => 'Password must be at least 8 characters.'];
     if ($campus === '') return ['error' => 'Campus is required.'];
 
-    $users = ccw_read_json(CCW_USERS_FILE);
+    $users = ccw_read_json(ccw_data_file('users.json'));
     foreach ($users as $user) {
         if (strcasecmp($user['username'] ?? '', $username) === 0) return ['error' => 'That username is already taken.'];
         if (strcasecmp($user['email'] ?? '', $email) === 0) return ['error' => 'An account with this email already exists.'];
@@ -75,18 +110,19 @@ function ccw_register_user(string $username, string $email, string $campus, stri
         'email' => $email,
         'campus' => $campus,
         'password' => password_hash($password, PASSWORD_DEFAULT),
+        'email_verified' => false,
         'created_at' => date('c')
     ];
     $users[] = $user;
 
-    return ccw_write_json(CCW_USERS_FILE, $users)
+    return ccw_write_json(ccw_data_file('users.json'), $users)
         ? ['user' => ccw_public_user($user)]
         : ['error' => 'Unable to create the account. Please try again.'];
 }
 
 function ccw_authenticate_user(string $identifier, string $password): array {
     $identifier = trim($identifier);
-    $users = ccw_read_json(CCW_USERS_FILE);
+    $users = ccw_read_json(ccw_data_file('users.json'));
 
     foreach ($users as $index => $user) {
         $emailMatches = strcasecmp($user['email'] ?? '', $identifier) === 0;
@@ -108,7 +144,8 @@ function ccw_authenticate_user(string $identifier, string $password): array {
         }
 
         if (!$verified) return ['error' => 'Invalid email or password.'];
-        if ($needsSave && !ccw_write_json(CCW_USERS_FILE, $users)) return ['error' => 'Unable to update account security.'];
+        if ($needsSave && !ccw_write_json(ccw_data_file('users.json'), $users)) return ['error' => 'Unable to update account security.'];
+        if (empty($user['email_verified'])) return ['error' => 'Verify your email with a sign-in code before logging in.'];
         return ['user' => ccw_public_user($user)];
     }
 
@@ -116,7 +153,7 @@ function ccw_authenticate_user(string $identifier, string $password): array {
 }
 
 function ccw_find_user_by_email(string $email): ?array {
-    foreach (ccw_read_json(CCW_USERS_FILE) as $user) {
+    foreach (ccw_read_json(ccw_data_file('users.json')) as $user) {
         if (strcasecmp($user['email'] ?? '', $email) === 0) return $user;
     }
     return null;
@@ -160,7 +197,7 @@ function ccw_request_otp(string $email): array {
     if (!ccw_valid_email($email)) return ['error' => 'Use your 10-digit ID@edenuniversity.education email.'];
     if (!ccw_find_user_by_email($email)) return ['error' => 'No Campus Connect account exists for this email.'];
 
-    $codes = ccw_read_json(CCW_OTP_FILE);
+    $codes = ccw_read_json(ccw_data_file('otp_codes.json'));
     $key = ccw_otp_key($email);
     $now = time();
     $existing = $codes[$key] ?? null;
@@ -187,38 +224,52 @@ function ccw_request_otp(string $email): array {
         'expires_at' => $now + CCW_OTP_TTL_SECONDS,
         'attempts' => 0
     ];
-    ccw_write_json(CCW_OTP_FILE, $codes);
+    if (!ccw_write_json(ccw_data_file('otp_codes.json'), $codes)) {
+        return ['error' => 'Unable to save the sign-in code. Please try again.'];
+    }
     return ['success' => true];
 }
 
 function ccw_verify_otp(string $email, string $code): array {
     $email = strtolower(trim($email));
     $code = trim($code);
-    $codes = ccw_read_json(CCW_OTP_FILE);
+    $codes = ccw_read_json(ccw_data_file('otp_codes.json'));
     $key = ccw_otp_key($email);
     $record = $codes[$key] ?? null;
     $now = time();
 
     if (!$record || ($record['expires_at'] ?? 0) <= $now) {
         unset($codes[$key]);
-        ccw_write_json(CCW_OTP_FILE, $codes);
+        ccw_write_json(ccw_data_file('otp_codes.json'), $codes);
         return ['error' => 'That sign-in code has expired. Request a new one.'];
     }
     if (($record['attempts'] ?? 0) >= CCW_OTP_MAX_ATTEMPTS) {
         unset($codes[$key]);
-        ccw_write_json(CCW_OTP_FILE, $codes);
+        ccw_write_json(ccw_data_file('otp_codes.json'), $codes);
         return ['error' => 'Too many attempts. Request a new sign-in code.'];
     }
     if (!preg_match('/^\d{6}$/', $code) || !password_verify($code, $record['code_hash'])) {
         $codes[$key]['attempts'] = ($record['attempts'] ?? 0) + 1;
-        ccw_write_json(CCW_OTP_FILE, $codes);
+        if (!ccw_write_json(ccw_data_file('otp_codes.json'), $codes)) {
+            return ['error' => 'Unable to update the sign-in code. Please try again.'];
+        }
         return ['error' => 'Invalid sign-in code.'];
     }
 
     unset($codes[$key]);
-    ccw_write_json(CCW_OTP_FILE, $codes);
-    $user = ccw_find_user_by_email($email);
-    return $user ? ['user' => ccw_public_user($user)] : ['error' => 'Account not found.'];
+    if (!ccw_write_json(ccw_data_file('otp_codes.json'), $codes)) {
+        return ['error' => 'Unable to verify the sign-in code. Please try again.'];
+    }
+    $users = ccw_read_json(ccw_data_file('users.json'));
+    foreach ($users as $index => $user) {
+        if (strcasecmp($user['email'] ?? '', $email) !== 0) continue;
+        $users[$index]['email_verified'] = true;
+        if (!ccw_write_json(ccw_data_file('users.json'), $users)) {
+            return ['error' => 'Unable to verify the account. Request a new sign-in code and try again.'];
+        }
+        return ['user' => ccw_public_user($users[$index])];
+    }
+    return ['error' => 'Account not found.'];
 }
 
 function ccw_public_user(array $user): array {
@@ -231,21 +282,21 @@ function ccw_public_user(array $user): array {
 
 function ccw_create_token(string $email): string {
     $token = bin2hex(random_bytes(32));
-    $tokens = ccw_read_json(CCW_TOKENS_FILE);
+    $tokens = ccw_read_json(ccw_data_file('auth_tokens.json'));
     $now = time();
     $tokens = array_filter($tokens, static fn(array $record): bool => ($record['expires_at'] ?? 0) > $now);
     $tokens[hash('sha256', $token)] = ['email' => $email, 'expires_at' => $now + CCW_TOKEN_TTL_SECONDS];
-    ccw_write_json(CCW_TOKENS_FILE, $tokens);
+    ccw_write_json(ccw_data_file('auth_tokens.json'), $tokens);
     return $token;
 }
 
 function ccw_user_for_token(?string $token): ?array {
     if (empty($token)) return null;
-    $tokens = ccw_read_json(CCW_TOKENS_FILE);
+    $tokens = ccw_read_json(ccw_data_file('auth_tokens.json'));
     $record = $tokens[hash('sha256', $token)] ?? null;
     if (!$record || ($record['expires_at'] ?? 0) <= time()) return null;
 
-    foreach (ccw_read_json(CCW_USERS_FILE) as $user) {
+    foreach (ccw_read_json(ccw_data_file('users.json')) as $user) {
         if (strcasecmp($user['email'] ?? '', $record['email']) === 0) return ccw_public_user($user);
     }
     return null;
@@ -253,9 +304,9 @@ function ccw_user_for_token(?string $token): ?array {
 
 function ccw_revoke_token(?string $token): void {
     if (empty($token)) return;
-    $tokens = ccw_read_json(CCW_TOKENS_FILE);
+    $tokens = ccw_read_json(ccw_data_file('auth_tokens.json'));
     unset($tokens[hash('sha256', $token)]);
-    ccw_write_json(CCW_TOKENS_FILE, $tokens);
+    ccw_write_json(ccw_data_file('auth_tokens.json'), $tokens);
 }
 
 function ccw_bearer_token(): ?string {
