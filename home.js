@@ -48,6 +48,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   document.getElementById('logoutBtn').addEventListener('click', function () {
     fetch('logout.php', { method: 'POST' }).finally(function () {
+      sessionStorage.removeItem('cc-auth-token');
       sessionStorage.removeItem('cc-user');
       window.location.href = 'index.html';
     });
@@ -89,28 +90,70 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
+  function formatRelative(at) {
+    if (!at) return 'now';
+    var diff = Date.now() - at;
+    if (diff < 60000) return 'now';
+    if (diff < 3600000) return Math.floor(diff / 60000) + 'm';
+    if (diff < 86400000) return Math.floor(diff / 3600000) + 'h';
+    return Math.floor(diff / 86400000) + 'd';
+  }
+  function formatBubbleTime(at) {
+    try { return new Date(at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); } catch (e) { return ''; }
+  }
   function loadConversations() {
     try {
       const stored = JSON.parse(localStorage.getItem(conversationKey) || 'null');
-      return stored || [
-        { id: 'alex-tutoring', name: 'Alex M.', initials: 'AM', avatar: 'avatar-navy', listing: 'Calc II tutoring', time: '12m', unread: true, messages: [{ text: 'Is Tuesday at 17:00 okay?', mine: false }] },
-        { id: 'tendai-fridge', name: 'Tendai N.', initials: 'TN', avatar: 'avatar-orange', listing: 'Mini fridge, barely used', time: '34m', unread: true, messages: [{ text: 'The mini fridge is still available.', mine: false }] }
-      ];
-    } catch (error) { return []; }
+      if (Array.isArray(stored) && stored.length) {
+        return stored.map(function (c) {
+          c.messages = (c.messages || []).map(function (m) { if (typeof m.at !== 'number') m.at = Date.now() - 600000; return m; });
+          if (typeof c.lastAt !== 'number') {
+            var last = c.messages[c.messages.length - 1];
+            c.lastAt = last ? last.at : Date.now();
+          }
+          if (!c.time) c.time = formatRelative(c.lastAt);
+          return c;
+        }).sort(function (a, b) { return (b.lastAt || 0) - (a.lastAt || 0); });
+      }
+    } catch (error) {}
+    var now = Date.now();
+    var seeded = [
+      { id: 'alex-tutoring', name: 'Alex M.', initials: 'AM', avatar: 'avatar-navy', listing: 'Calc II tutoring · K50/hr', time: '12m', lastAt: now - 12 * 60000, unread: true, messages: [{ text: 'Hey! Is Tuesday at 17:00 at the library still good for Calc II?', mine: false, at: now - 13 * 60000 }, { text: 'I can bring past papers and we can focus on integration.', mine: false, at: now - 12 * 60000 }] },
+      { id: 'tendai-fridge', name: 'Tendai N.', initials: 'TN', avatar: 'avatar-orange', listing: 'Mini fridge · K450', time: '34m', lastAt: now - 34 * 60000, unread: true, messages: [{ text: 'Hi, is the mini fridge still available near Block C?', mine: false, at: now - 35 * 60000 }, { text: 'Yes — clean and ready for pickup tomorrow afternoon.', mine: false, at: now - 34 * 60000 }] }
+    ];
+    localStorage.setItem(conversationKey, JSON.stringify(seeded));
+    return seeded;
   }
 
-  function saveConversations() { localStorage.setItem(conversationKey, JSON.stringify(conversations)); }
+  function saveConversations() {
+    conversations.forEach(function (c) { c.time = formatRelative(c.lastAt); });
+    conversations.sort(function (a, b) { return (b.lastAt || 0) - (a.lastAt || 0); });
+    localStorage.setItem(conversationKey, JSON.stringify(conversations));
+  }
 
   function renderConversations() {
-    const unreadCount = conversations.filter(function (conversation) { return conversation.unread; }).length;
+    const unreadCount = conversations.filter(function (c) { return c.unread; }).length;
     messagesView.querySelector('.panel-count').textContent = unreadCount;
     conversationList.innerHTML = conversations.map(function (conversation) {
       const latest = conversation.messages[conversation.messages.length - 1];
-      return '<button class="conversation-row' + (conversation.id === activeConversationId ? ' is-active' : '') + '" type="button" data-conversation-id="' + escapeHtml(conversation.id) + '"><span class="conversation-avatar ' + escapeHtml(conversation.avatar) + '">' + escapeHtml(conversation.initials) + '</span><span class="conversation-copy"><strong>' + escapeHtml(conversation.name) + '</strong><small>' + escapeHtml(latest ? latest.text : 'Start a conversation') + '</small></span><time>' + escapeHtml(conversation.time || 'now') + '</time>' + (conversation.unread ? '<span class="unread-dot"></span>' : '') + '</button>';
+      var preview = latest ? latest.text : 'Start a conversation';
+      return '<button class="conversation-row' + (conversation.id === activeConversationId ? ' is-active' : '') + (conversation.unread ? ' is-unread' : '') + '" type="button" data-conversation-id="' + escapeHtml(conversation.id) + '"><span class="conversation-avatar ' + escapeHtml(conversation.avatar) + '">' + escapeHtml(conversation.initials) + '</span><span class="conversation-copy"><span class="conversation-copy-top"><strong>' + escapeHtml(conversation.name) + '</strong><time>' + escapeHtml(formatRelative(conversation.lastAt)) + '</time></span><small class="conversation-listing">' + escapeHtml(conversation.listing) + '</small><small class="conversation-preview' + (conversation.unread ? ' is-unread' : '') + '">' + escapeHtml(preview) + '</small></span>' + (conversation.unread ? '<span class="unread-dot" aria-label="Unread"></span>' : '<span class="read-dot" aria-hidden="true"></span>') + '</button>';
     }).join('');
     conversationList.querySelectorAll('[data-conversation-id]').forEach(function (row) {
       row.addEventListener('click', function () { openConversation(row.dataset.conversationId); });
     });
+  }
+
+  function renderMessages(conversation) {
+    if (!conversation.messages.length) {
+      return '<div class="chat-system"><p>Say hi to ' + escapeHtml(conversation.name) + ' about <strong>' + escapeHtml(conversation.listing) + '</strong>.</p></div>';
+    }
+    var html = '<div class="chat-day-separator"><span>Today</span></div>';
+    conversation.messages.forEach(function (m) {
+      var mine = !!m.mine;
+      html += '<div class="chat-row' + (mine ? ' is-mine-row' : '') + '">' + (mine ? '' : '<span class="conversation-avatar chat-row-avatar ' + escapeHtml(conversation.avatar) + '">' + escapeHtml(conversation.initials) + '</span>') + '<div class="chat-bubble' + (mine ? ' is-mine' : '') + '"><p>' + escapeHtml(m.text) + '</p><time>' + escapeHtml(formatBubbleTime(m.at)) + '</time></div></div>';
+    });
+    return html;
   }
 
   function openConversation(id) {
@@ -118,17 +161,26 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!conversation) return;
     activeConversationId = id;
     conversation.unread = false;
+    saveConversations();
     chatName.textContent = conversation.name;
     chatListing.textContent = conversation.listing;
     chatAvatar.textContent = conversation.initials;
     chatAvatar.className = 'conversation-avatar ' + conversation.avatar;
-    chatMessages.innerHTML = conversation.messages.map(function (message) {
-      return '<div class="chat-bubble' + (message.mine ? ' is-mine' : '') + '">' + escapeHtml(message.text) + '</div>';
-    }).join('');
+    chatMessages.innerHTML = renderMessages(conversation);
     chatPanel.hidden = false;
     chatEmpty.hidden = true;
     renderConversations();
     chatMessages.scrollTop = chatMessages.scrollHeight;
+  }
+
+  function pickReply(listing) {
+    var replies = {
+      'Calc II': ['Great — Tuesday 17:00 works. Meet at the library main desk?', 'I can share past exam papers as well. What topics feel trickiest?'],
+      'Mini fridge': ['Yes still available! Are you on Main or Great East? We can arrange pickup after 15:00.', 'Happy to hold it until tomorrow if you need.'],
+      'default': ['Thanks for reaching out! When suits you to meet on campus?', 'Happy to help — let me know what you had in mind.', 'Got it! I can meet in a public spot near campus.']
+    };
+    for (var k in replies) { if (k !== 'default' && listing.indexOf(k) !== -1) return replies[k][Math.floor(Math.random() * replies[k].length)]; }
+    var d = replies['default']; return d[Math.floor(Math.random() * d.length)];
   }
 
   renderConversations();
@@ -137,11 +189,29 @@ document.addEventListener('DOMContentLoaded', function () {
     const text = chatInput.value.trim();
     const conversation = conversations.find(function (item) { return item.id === activeConversationId; });
     if (!text || !conversation) return;
-    conversation.messages.push({ text: text, mine: true });
-    conversation.time = 'now';
+    var trimmed = text.slice(0, 500);
+    conversation.messages.push({ text: trimmed, mine: true, at: Date.now() });
+    conversation.lastAt = Date.now();
     saveConversations();
     chatInput.value = '';
     openConversation(conversation.id);
+    // typing + auto reply
+    var typing = document.createElement('div');
+    typing.className = 'chat-typing';
+    typing.innerHTML = '<span class="conversation-avatar chat-row-avatar ' + escapeHtml(conversation.avatar) + '">' + escapeHtml(conversation.initials) + '</span><span class="typing-bubble"><i></i><i></i><i></i></span>';
+    chatMessages.appendChild(typing);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+    var replyText = pickReply(conversation.listing);
+    setTimeout(function () {
+      if (typing.parentNode) typing.remove();
+      conversation.messages.push({ text: replyText, mine: false, at: Date.now() });
+      conversation.lastAt = Date.now();
+      var isActive = activeConversationId === conversation.id && !chatPanel.hidden;
+      if (!isActive) conversation.unread = true;
+      saveConversations();
+      if (isActive) { chatMessages.innerHTML = renderMessages(conversation); chatMessages.scrollTop = chatMessages.scrollHeight; }
+      renderConversations();
+    }, 900 + Math.random() * 600);
   });
 
   function filterListings() {
@@ -249,14 +319,21 @@ document.addEventListener('DOMContentLoaded', function () {
   document.querySelectorAll('[data-message]').forEach(function (button) {
     button.addEventListener('click', function () {
       const card = button.closest('.listing-card');
-      const listing = card ? card.querySelector('h2').textContent : 'Campus listing';
-      let conversation = conversations.find(function (item) { return item.name === button.dataset.message; });
+      const listing = card ? (card.querySelector('h2').textContent + ' · ' + (card.querySelector('.listing-price') ? card.querySelector('.listing-price').textContent.trim() : '')) : 'Campus listing';
+      let conversation = conversations.find(function (item) { return item.name === button.dataset.message && item.listing === listing; });
       if (!conversation) {
-        conversation = { id: Date.now().toString(), name: button.dataset.message, initials: button.dataset.message.slice(0, 2).toUpperCase(), avatar: 'avatar-navy', listing: listing, time: 'now', unread: false, messages: [] };
+        var avatars = ['avatar-navy', 'avatar-orange', 'avatar-green'];
+        var avatar = avatars[conversations.length % 3];
+        conversation = { id: 'conv-' + Date.now(), name: button.dataset.message, initials: button.dataset.message.slice(0, 2).toUpperCase(), avatar: avatar, listing: listing, time: 'now', lastAt: Date.now(), unread: false, messages: [] };
         conversations.unshift(conversation);
+        saveConversations();
+      } else {
+        // bring to top
+        conversations = [conversation].concat(conversations.filter(function (c) { return c.id !== conversation.id; }));
         saveConversations();
       }
       showView('messages');
+      renderConversations();
       openConversation(conversation.id);
     });
   });

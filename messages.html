@@ -1,6 +1,99 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Messages — Campus Connect</title><link rel="stylesheet" href="style.css"><script>(function(){try{var saved=localStorage.getItem('cc-theme');var theme=saved||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',theme);}catch(e){}}());</script></head><body>
 <header class="site-header"><div class="container header-inner"><a href="home.html" class="logo" aria-label="Campus Connect home"><img src="assets/campus-connect-logo.svg" alt="" class="logo-mark"><span class="logo-wordmark">Campus<span>Connect</span></span></a><div class="header-actions"><button id="themeToggle" class="theme-toggle" aria-label="Toggle dark mode" type="button"><span class="theme-icon theme-icon-sun">☀️</span><span class="theme-icon theme-icon-moon">🌙</span></button><button id="logoutBtn" class="btn btn-outline nav-cta" type="button">Log Out</button></div></div></header>
-<main class="marketplace-shell"><div class="container"><section class="app-panel messages-page"><div class="panel-heading"><div><p class="eyebrow">Stay in the loop</p><h1>Messages</h1><p>Keep every campus conversation in one place.</p></div><span class="panel-count" id="messageCount">0</span></div><div class="messages-layout"><div class="conversation-list" id="conversationList"></div><section class="chat-panel" id="chatPanel" hidden><div class="chat-heading"><div class="conversation-avatar avatar-navy" id="chatAvatar">CC</div><div><strong id="chatName">Conversation</strong><small id="chatListing">Campus listing</small></div></div><div class="chat-messages" id="chatMessages"></div><form class="chat-form" id="chatForm"><input id="chatInput" type="text" maxlength="500" placeholder="Write a message..." required><button class="btn btn-primary" type="submit">Send</button></form></section><div class="chat-empty" id="chatEmpty"><span class="empty-panel-icon">✦</span><h3>Select a conversation</h3><p>Choose a conversation to reply.</p></div></div><div class="messages-tip"><span>✦</span><p>Keep conversations in-app until you have agreed on a safe campus meeting point.</p></div></section></div></main>
-<nav class="bottom-nav" aria-label="Main navigation"><a class="bottom-nav-item" href="home.html"><span class="bottom-nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg></span><span>Home</span></a><a class="bottom-nav-item" href="adverts.html"><span class="bottom-nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span><span>Adverts</span></a><a class="bottom-nav-item bottom-nav-post" href="post.html"><span class="bottom-nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></span><span>Post</span></a><a class="bottom-nav-item is-active" href="messages.html" aria-current="page"><span class="bottom-nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11.5a7.5 7.5 0 0 1-8 7.5 8.5 8.5 0 0 1-4-.9L4 20l1.2-3.3A7.2 7.2 0 0 1 4 12.5 7.5 7.5 0 0 1 12 5a7.5 7.5 0 0 1 8 6.5z"/><path d="M8 12h.01M12 12h.01M16 12h.01"/></svg></span><span>Messages</span></a><a class="bottom-nav-item" href="profile.html"><span class="bottom-nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M5 20a7 7 0 0 1 14 0"/></svg></span><span>Profile</span></a></nav>
-<script src="script.js"></script><script src="route-pages.js"></script></body></html>
+
+<main class="marketplace-shell">
+  <div class="container">
+    <section class="app-panel messages-page" id="messagesPage">
+      <div class="messages-header">
+        <div class="messages-header-copy">
+          <p class="eyebrow">Stay in the loop</p>
+          <h1>Messages</h1>
+          <p>Keep every campus conversation in one place. Messages stay in-app until you agree on a meeting point.</p>
+        </div>
+        <div class="messages-header-actions">
+          <span class="panel-count" id="messageCount">0</span>
+          <button class="btn btn-primary messages-new-btn" id="newConversationBtn" type="button">New chat</button>
+        </div>
+      </div>
+
+      <div class="messages-toolbar">
+        <label class="messages-search" aria-label="Search conversations">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m15.5 15.5 4 4"/></svg>
+          <input id="messageSearch" type="search" placeholder="Search by name, listing or message" autocomplete="off">
+        </label>
+        <div class="messages-filters" role="tablist" aria-label="Message filters">
+          <button class="filter-chip is-active" id="filterAll" type="button" role="tab" aria-selected="true">All</button>
+          <button class="filter-chip" id="filterUnread" type="button" role="tab" aria-selected="false">Unread</button>
+        </div>
+      </div>
+
+      <div class="messages-layout" id="messagesLayout">
+        <aside class="conversation-pane" aria-label="Conversations">
+          <div class="conversation-list" id="conversationList" role="list"></div>
+          <div class="conversation-empty" id="conversationEmpty" hidden>
+            <div class="empty-panel-icon">✦</div>
+            <h3>No conversations yet</h3>
+            <p>Tap Message on any listing to start a chat. Your campus hustle begins there.</p>
+            <button class="btn btn-accent" type="button" data-browse-adverts>Browse adverts</button>
+          </div>
+          <div class="conversation-empty" id="noResults" hidden>
+            <div class="empty-panel-icon">⌕</div>
+            <h3>No matches</h3>
+            <p>No conversation matches your search. Try a different name or listing.</p>
+          </div>
+        </aside>
+
+        <section class="chat-panel" id="chatPanel" hidden aria-live="polite">
+          <div class="chat-heading">
+            <button class="chat-back" id="chatBackBtn" type="button" aria-label="Back to conversations">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 6 8.5 12l6 6"/></svg>
+            </button>
+            <div class="conversation-avatar avatar-navy" id="chatAvatar">CC</div>
+            <div class="chat-heading-copy">
+              <strong id="chatName">Conversation</strong>
+              <small id="chatListing">Campus listing</small>
+            </div>
+            <button class="icon-button chat-more" id="chatDeleteBtn" type="button" aria-label="Delete conversation">•••</button>
+          </div>
+          <div class="chat-messages" id="chatMessages"></div>
+          <form class="chat-form" id="chatForm" autocomplete="off">
+            <div class="chat-input-wrap">
+              <input id="chatInput" type="text" maxlength="500" placeholder="Write a message..." required aria-label="Message">
+              <span class="chat-char-count" id="chatCharCount" aria-live="polite">0/500</span>
+            </div>
+            <button class="btn btn-primary chat-send" type="submit" aria-label="Send message">
+              <span class="chat-send-label">Send</span>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 4 4 11l6 4 4 6z"/><path d="M11 15 20 4"/></svg>
+            </button>
+          </form>
+        </section>
+
+        <div class="chat-empty" id="chatEmpty">
+          <div class="chat-empty-inner">
+            <span class="empty-panel-icon">✦</span>
+            <h3>Select a conversation</h3>
+            <p>Choose a conversation to view and reply. New messages appear here.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="messages-tip">
+        <span>✦</span>
+        <p>Keep conversations in-app until you have agreed on a safe campus meeting point. Meet in public spaces and trust your instincts.</p>
+      </div>
+    </section>
+  </div>
+</main>
+
+<nav class="bottom-nav" aria-label="Main navigation">
+  <a class="bottom-nav-item" href="home.html"><span class="bottom-nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg></span><span>Home</span></a>
+  <a class="bottom-nav-item" href="adverts.html"><span class="bottom-nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span><span>Adverts</span></a>
+  <a class="bottom-nav-item bottom-nav-post" href="post.html"><span class="bottom-nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></span><span>Post</span></a>
+  <a class="bottom-nav-item is-active" href="messages.html" aria-current="page"><span class="bottom-nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11.5a7.5 7.5 0 0 1-8 7.5 8.5 8.5 0 0 1-4-.9L4 20l1.2-3.3A7.2 7.2 0 0 1 4 12.5 7.5 7.5 0 0 1 12 5a7.5 7.5 0 0 1 8 6.5z"/><path d="M8 12h.01M12 12h.01M16 12h.01"/></svg></span><span>Messages</span></a>
+  <a class="bottom-nav-item" href="profile.html"><span class="bottom-nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M5 20a7 7 0 0 1 14 0"/></svg></span><span>Profile</span></a>
+</nav>
+
+<script src="script.js"></script>
+<script src="messages.js"></script>
+</body></html>

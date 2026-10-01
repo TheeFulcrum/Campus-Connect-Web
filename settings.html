@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Settings — Campus Connect</title>
+<link rel="stylesheet" href="style.css">
+<script>(function(){try{var s=localStorage.getItem('cc-theme');var t=s||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+</head>
+<body>
+<header class="site-header">
+  <div class="container header-inner">
+    <a href="home.html" class="logo" aria-label="Campus Connect home"><img src="assets/campus-connect-logo.svg" alt="" class="logo-mark"><span class="logo-wordmark">Campus<span>Connect</span></span></a>
+    <div class="header-actions">
+      <button id="themeToggle" class="theme-toggle" aria-label="Toggle dark mode" type="button"><span class="theme-icon theme-icon-sun">☀️</span><span class="theme-icon theme-icon-moon">🌙</span></button>
+      <button id="logoutBtn" class="btn btn-outline nav-cta" type="button">Log Out</button>
+    </div>
+  </div>
+</header>
+
+<main class="marketplace-shell">
+  <div class="container">
+    <section class="app-panel settings-page">
+      <div class="settings-top">
+        <a href="profile.html" class="settings-back" aria-label="Back to profile">‹</a>
+        <div>
+          <p class="eyebrow">Your account</p>
+          <h1>Settings and privacy</h1>
+        </div>
+      </div>
+
+      <nav class="settings-tabs" role="tablist" aria-label="Settings sections">
+        <button class="is-active" type="button" role="tab" aria-selected="true" data-settings-tab="general">General</button>
+        <button type="button" role="tab" aria-selected="false" data-settings-tab="privacy">Privacy</button>
+        <button type="button" role="tab" aria-selected="false" data-settings-tab="account">Account</button>
+      </nav>
+
+      <div class="settings-panels">
+        <div class="settings-panel" data-settings-panel="general">
+          <div class="settings-list">
+            <label class="profile-setting-row"><span><strong>Activity notifications</strong><small>Get updates about messages and listings.</small></span><input type="checkbox" id="settingNotifications"><span class="setting-switch" aria-hidden="true"></span></label>
+            <label class="profile-setting-row"><span><strong>Motion effects</strong><small>Use animations in the interface.</small></span><input type="checkbox" id="settingMotion"><span class="setting-switch" aria-hidden="true"></span></label>
+            <a class="profile-setting-row profile-setting-link" href="preferences.html"><span><strong>Feed interests</strong><small>Update the categories used for your Home feed.</small></span><span aria-hidden="true">&rarr;</span></a>
+          </div>
+          <div class="settings-list">
+            <button class="profile-setting-row" type="button" data-settings-action="qr"><span><strong>QR code</strong><small>Share your Campus Connect profile.</small></span><span aria-hidden="true">‹›</span></button>
+            <button class="profile-setting-row" type="button" data-settings-action="apps"><span><strong>Apps and websites</strong><small>Connected campus services.</small></span><span aria-hidden="true">&rarr;</span></button>
+          </div>
+        </div>
+
+        <div class="settings-panel" data-settings-panel="privacy" hidden>
+          <div class="settings-list">
+            <button class="profile-setting-row" type="button"><span><strong>Professional account</strong><small>Switch to a campus business profile.</small></span><span aria-hidden="true">&rarr;</span></button>
+            <button class="profile-setting-row" type="button"><span><strong>Supervision</strong><small>Manage supervised accounts.</small></span><span aria-hidden="true">&rarr;</span></button>
+            <button class="profile-setting-row" type="button"><span><strong>Login activity</strong><small>See where your account is logged in.</small></span><span aria-hidden="true">&rarr;</span></button>
+          </div>
+        </div>
+
+        <div class="settings-panel" data-settings-panel="account" hidden>
+          <div class="settings-list">
+            <button class="profile-setting-row profile-setting-danger" id="clearLocalData" type="button"><span><strong>Clear local data</strong><small>Remove saved preferences and conversations from this browser.</small></span><span aria-hidden="true">&times;</span></button>
+            <button class="profile-setting-row profile-setting-danger" id="settingsLogoutBtn" type="button"><span><strong>Log out</strong><small>Sign out of Campus Connect.</small></span><span aria-hidden="true">↪</span></button>
+            <p class="settings-meta">Campus Connect · Meta Verified · v1.4</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-pagination">
+        <span class="settings-dot is-active"></span><span class="settings-dot"></span><span class="settings-dot"></span>
+      </div>
+    </section>
+  </div>
+</main>
+
+<nav class="bottom-nav" aria-label="Main navigation">
+  <a class="bottom-nav-item" href="home.html"><span class="bottom-nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg></span><span>Home</span></a>
+  <a class="bottom-nav-item" href="adverts.html"><span class="bottom-nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span><span>Adverts</span></a>
+  <a class="bottom-nav-item bottom-nav-post" href="post.html"><span class="bottom-nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></span><span>Post</span></a>
+  <a class="bottom-nav-item" href="messages.html"><span class="bottom-nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11.5a7.5 7.5 0 0 1-8 7.5 8.5 8.5 0 0 1-4-.9L4 20l1.2-3.3A7.2 7.2 0 0 1 4 12.5 7.5 7.5 0 0 1 12 5a7.5 7.5 0 0 1 8 6.5z"/></svg></span><span>Messages</span></a>
+  <a class="bottom-nav-item is-active" href="profile.html" aria-current="page"><span class="bottom-nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M5 20a7 7 0 0 1 14 0"/></svg></span><span>Profile</span></a>
+</nav>
+
+<script src="script.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  var raw=sessionStorage.getItem('cc-user'); if(!raw) location.href='login.html';
+  document.getElementById('logoutBtn').addEventListener('click', function(){ fetch('logout.php',{method:'POST'}).finally(function(){ sessionStorage.removeItem('cc-user'); location.href='index.html';});});
+  var sLogout=document.getElementById('settingsLogoutBtn'); if(sLogout) sLogout.addEventListener('click', function(){ fetch('logout.php',{method:'POST'}).finally(function(){ sessionStorage.removeItem('cc-user'); location.href='index.html';});});
+  var tabs=document.querySelectorAll('[data-settings-tab]'); var panels=document.querySelectorAll('[data-settings-panel]'); var dots=document.querySelectorAll('.settings-dot');
+  tabs.forEach(function(tab){ tab.addEventListener('click', function(){
+    tabs.forEach(function(t){ t.classList.remove('is-active'); t.setAttribute('aria-selected','false'); });
+    tab.classList.add('is-active'); tab.setAttribute('aria-selected','true');
+    var target=tab.dataset.settingsTab;
+    panels.forEach(function(p){ p.hidden = p.dataset.settingsPanel !== target; });
+    var idx=Array.prototype.indexOf.call(tabs, tab);
+    dots.forEach(function(d,i){ d.classList.toggle('is-active', i===idx); });
+  });});
+  var notif=document.getElementById('settingNotifications'); if(notif){ notif.checked=localStorage.getItem('cc-notifications')!=='off'; notif.addEventListener('change', function(){ localStorage.setItem('cc-notifications', notif.checked?'on':'off');});}
+  var motion=document.getElementById('settingMotion'); if(motion){ motion.checked=localStorage.getItem('cc-motion')!=='off'; motion.addEventListener('change', function(){ localStorage.setItem('cc-motion', motion.checked?'on':'off'); document.documentElement.classList.toggle('reduced-motion', !motion.checked);}); document.documentElement.classList.toggle('reduced-motion', !motion.checked);}
+  var clearBtn=document.getElementById('clearLocalData'); if(clearBtn) clearBtn.addEventListener('click', function(){ if(!confirm('Clear saved preferences, messages, and settings from this browser?')) return; var cur=sessionStorage.getItem('cc-user'); localStorage.clear(); sessionStorage.clear(); if(cur) sessionStorage.setItem('cc-user',cur); location.reload();});
+  document.querySelectorAll('[data-settings-action="qr"],[data-settings-action="apps"]').forEach(function(b){ b.addEventListener('click', function(){ alert('Coming soon on campus.');});});
+});
+</script>
+</body>
+</html>

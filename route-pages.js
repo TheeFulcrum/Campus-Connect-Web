@@ -48,12 +48,20 @@ document.addEventListener('DOMContentLoaded', function () {
   });
   document.querySelectorAll('[data-message-name]').forEach(function (button) {
     button.addEventListener('click', function () {
-      const listing = button.closest('.listing-card').querySelector('h2').textContent;
-      let conversations = JSON.parse(localStorage.getItem(storageKey) || '[]');
-      let conversation = conversations.find(function (item) { return item.name === button.dataset.messageName; });
+      var card = button.closest('.listing-card');
+      var priceEl = card ? card.querySelector('.listing-price') : null;
+      var listing = card ? (card.querySelector('h2').textContent + (priceEl ? ' · ' + priceEl.textContent.trim() : '')) : 'Campus listing';
+      var conversations = JSON.parse(localStorage.getItem(storageKey) || '[]');
+      var conversation = conversations.find(function (item) { return item.name === button.dataset.messageName && item.listing === listing; });
       if (!conversation) {
-        conversation = { id: Date.now().toString(), name: button.dataset.messageName, initials: button.dataset.messageName.slice(0, 2).toUpperCase(), avatar: 'avatar-navy', listing: listing, time: 'now', unread: false, messages: [] };
+        var avatars = ['avatar-navy', 'avatar-orange', 'avatar-green'];
+        var avatar = avatars[conversations.length % 3];
+        conversation = { id: 'conv-' + Date.now(), name: button.dataset.messageName, initials: button.dataset.messageName.slice(0, 2).toUpperCase(), avatar: avatar, listing: listing, time: 'now', lastAt: Date.now(), unread: false, messages: [] };
         conversations.unshift(conversation);
+        localStorage.setItem(storageKey, JSON.stringify(conversations));
+      } else {
+        // bring to top
+        conversations = [conversation].concat(conversations.filter(function (c) { return c.id !== conversation.id; }));
         localStorage.setItem(storageKey, JSON.stringify(conversations));
       }
       window.location.href = 'messages.html?conversation=' + encodeURIComponent(conversation.id);

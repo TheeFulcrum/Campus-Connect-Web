@@ -36,18 +36,23 @@ document.addEventListener('DOMContentLoaded', function () {
       btn.textContent = 'Opening Campus Connect...';
 
       try {
-        const response = await fetch('login.php', {
+        const response = await fetch('auth_api.php', {
           method: 'POST',
-          body: new URLSearchParams({ identifier: identifier, password: password })
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'login', identifier: identifier, password: password })
         });
         const result = await response.json();
         if (!response.ok || !result.success) throw new Error(result.error || 'Unable to log in.');
 
         sessionStorage.setItem('cc-user', JSON.stringify({
-          username: result.username,
-          email: result.email,
-          campus: result.campus
+          username: result.user.username,
+          email: result.user.email,
+          campus: result.user.campus,
+          real_name: result.user.real_name || '',
+          bio: result.user.bio || '',
+          avatar: result.user.avatar || ''
         }));
+        if (result.token) sessionStorage.setItem('cc-auth-token', result.token);
         if (sessionStorage.getItem('cc-pending-signup')) {
           window.location.href = 'preferences.html';
         } else {
@@ -66,12 +71,44 @@ document.addEventListener('DOMContentLoaded', function () {
   const signupForm = document.getElementById('signupForm');
   if (signupForm) {
     const msg = document.getElementById('signupMsg');
+    const avatarInput = document.getElementById('signupAvatar');
+    const avatarPreview = document.getElementById('signupAvatarPreview');
+    const bioInput = document.getElementById('signupBio');
+    const bioHint = document.getElementById('bioHint');
+    let avatarDataUrl = '';
+
+    if (bioInput && bioHint) {
+      bioInput.addEventListener('input', function () { bioHint.textContent = bioInput.value.length + ' / 150'; });
+    }
+
+    if (avatarInput && avatarPreview) {
+      avatarInput.addEventListener('change', function () {
+        const file = avatarInput.files && avatarInput.files[0];
+        if (!file) return;
+        if (file.size > 500000) {
+          showMsg(msg, 'Profile picture must be under 500KB.', 'var(--error)');
+          avatarInput.value = '';
+          return;
+        }
+        const reader = new FileReader();
+        reader.onload = function () {
+          avatarDataUrl = String(reader.result || '');
+          avatarPreview.textContent = '';
+          avatarPreview.style.backgroundImage = 'url(' + avatarDataUrl + ')';
+          avatarPreview.style.backgroundSize = 'cover';
+          avatarPreview.style.backgroundPosition = 'center';
+        };
+        reader.readAsDataURL(file);
+      });
+    }
 
     signupForm.addEventListener('submit', async function (e) {
       e.preventDefault();
       const username = document.getElementById('signupUsername').value.trim();
+      const realName = (document.getElementById('signupRealName') && document.getElementById('signupRealName').value.trim()) || '';
       const email = document.getElementById('signupEmail').value.trim();
       const campus = document.getElementById('signupCampus').value;
+      const bio = (document.getElementById('signupBio') && document.getElementById('signupBio').value.trim()) || '';
       const password = document.getElementById('signupPassword').value;
       const confirm = document.getElementById('signupConfirm').value;
 
@@ -97,9 +134,13 @@ document.addEventListener('DOMContentLoaded', function () {
       btn.textContent = 'Creating account...';
 
       try {
+        const body = new URLSearchParams({ username: username, email: email, campus: campus, password: password });
+        if (realName) body.set('real_name', realName);
+        if (bio) body.set('bio', bio);
+        if (avatarDataUrl) body.set('avatar', avatarDataUrl);
         const response = await fetch('signup.php', {
           method: 'POST',
-          body: new URLSearchParams({ username: username, email: email, campus: campus, password: password })
+          body: body
         });
         const result = await response.json();
         const accountExists = result.error === 'An account with this email already exists.';
@@ -107,8 +148,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
         sessionStorage.setItem('cc-pending-signup', JSON.stringify({
           username: username,
+          real_name: realName,
           email: email,
-          campus: campus
+          campus: campus,
+          bio: bio,
+          avatar: avatarDataUrl
         }));
         const otpResponse = await fetch('auth_api.php', {
           method: 'POST',

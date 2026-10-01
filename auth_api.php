@@ -38,7 +38,7 @@ if ($action === 'verify_otp') {
 }
 
 if ($action === 'register') {
-    $result = ccw_register_user($body['username'] ?? '', $body['email'] ?? '', $body['campus'] ?? '', $body['password'] ?? '');
+    $result = ccw_register_user($body['username'] ?? '', $body['email'] ?? '', $body['campus'] ?? '', $body['password'] ?? '', $body['real_name'] ?? $body['realName'] ?? '', $body['bio'] ?? '', $body['avatar'] ?? '');
     if (isset($result['error'])) respond(422, ['success' => false, 'error' => $result['error']]);
     $token = ccw_create_token($result['user']['email']);
     respond(201, ['success' => true, 'user' => $result['user'], 'token' => $token]);
@@ -47,6 +47,14 @@ if ($action === 'register') {
 if ($action === 'login') {
     $result = ccw_authenticate_user($body['identifier'] ?? '', $body['password'] ?? '');
     if (isset($result['error'])) respond(401, ['success' => false, 'error' => $result['error']]);
+    session_set_cookie_params([
+        'httponly' => true,
+        'samesite' => 'Lax',
+        'secure' => !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off'
+    ]);
+    session_start();
+    session_regenerate_id(true);
+    $_SESSION['user'] = $result['user'];
     $token = ccw_create_token($result['user']['email']);
     respond(200, ['success' => true, 'user' => $result['user'], 'token' => $token]);
 }

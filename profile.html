@@ -28,12 +28,14 @@
         <span class="theme-icon theme-icon-moon">🌙</span>
       </button>
       <div class="profile-menu-wrap">
-        <button class="profile-menu-button" id="profileMenuButton" type="button" aria-label="Open profile menu" aria-expanded="false" aria-controls="profileMenu">
+        <button class="profile-menu-button" id="profileMenuButton" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="profileMenu">
           <span></span><span></span><span></span>
         </button>
-        <div class="profile-menu" id="profileMenu" hidden>
-          <button type="button" data-profile-menu-action="settings">Settings</button>
-          <button type="button" data-profile-menu-action="edit">Edit profile</button>
+        <div class="profile-menu profile-menu-wide" id="profileMenu" hidden>
+          <button type="button" data-profile-menu-action="settings">Settings and privacy</button>
+          <button type="button" data-profile-menu-action="notifications">Notifications</button>
+          <button type="button" data-profile-menu-action="qr">QR code</button>
+          <button type="button" data-profile-menu-action="logout">Log Out</button>
         </div>
       </div>
       <button id="logoutBtn" class="btn btn-outline nav-cta" type="button">Log Out</button>
@@ -41,34 +43,100 @@
   </div>
 </header>
 
-<main class="profile-page-shell">
+<main class="profile-page-shell insta-shell">
   <div class="container">
-    <section class="profile-page app-panel">
-      <div class="profile-cover"><span>Campus Connect member</span></div>
-      <div class="profile-page-card">
-        <div class="profile-page-avatar" id="profilePageAvatar">CC</div>
-        <p class="eyebrow">Your account</p>
-        <h1 id="profilePageName">Student</h1>
-        <p id="profilePageCampus">Main Campus</p>
-        <p class="profile-bio" id="profileBio">Student seller and campus community member.</p>
-        <div class="profile-actions"><button class="btn btn-primary" id="profileEditAction" type="button">Edit profile</button><button class="btn btn-outline" id="shareProfileAction" type="button">Share profile</button></div>
+    <section class="profile-insta app-panel">
+      <!-- Instagram-style header -->
+      <div class="insta-header">
+        <div class="insta-avatar-wrap">
+          <div class="insta-avatar" id="profilePageAvatar" aria-label="Profile picture">CC</div>
+          <button class="insta-avatar-edit" id="avatarEditBtn" type="button" aria-label="Change profile picture">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8a4 4 0 1 0 0 8a4 4 0 0 0 0-8z"/><path d="M4 12a8 8 0 0 1 8-8v0a8 8 0 0 1 8 8v0a8 8 0 0 1-8 8v0a8 8 0 0 1-8-8z"/><path d="M18 6l1 1"/></svg>
+          </button>
+          <input type="file" id="avatarFileInput" accept="image/*" hidden>
+        </div>
+        <div class="insta-meta">
+          <div class="insta-top-row">
+            <h1 class="insta-username" id="profileUsernameDisplay">username_</h1>
+            <button class="insta-gear" id="instaSettingsBtn" type="button" aria-label="Settings">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8a4 4 0 1 0 0 8a4 4 0 0 0 0-8z"/><path d="M19.2 14.3l.6-1.5-.6-1.5 1-1-1-1.7-1.4.4-.9-1.1.1-1.4h-2l-.5-1.3h-1l-.5 1.3h-2l.1 1.4-.9 1.1-1.4-.4-1 1.7 1 1-.6 1.5.6 1.5-1 1 1 1.7 1.4-.4.9 1.1-.1 1.4h2l.5 1.3h1l.5-1.3h2l-.1-1.4.9-1.1 1.4.4 1-1.7-1-1z"/></svg>
+            </button>
+            <a href="settings.html" class="insta-settings-link" aria-label="Open settings">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8a4 4 0 1 0 0 8a4 4 0 0 0 0-8z"/><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/></svg>
+            </a>
+          </div>
+          <div class="insta-stats">
+            <span><strong id="statPosts">3</strong> posts</span>
+            <span><strong>270</strong> followers</span>
+            <span><strong>322</strong> following</span>
+          </div>
+          <div class="insta-identity">
+            <strong id="profileRealName">Student</strong>
+            <span id="profileCampusBadge" class="insta-campus">Main Campus</span>
+            <p id="profileBio" class="insta-bio">Student seller and campus community member.</p>
+            <p class="insta-handle">@<span id="profileHandle">username</span></p>
+          </div>
+          <div class="insta-actions">
+            <button class="btn btn-primary" id="profileEditAction" type="button">Edit profile</button>
+            <button class="btn btn-outline" id="shareProfileAction" type="button">Share profile</button>
+          </div>
+        </div>
       </div>
-      <div class="profile-stats"><div><strong>3</strong><span>Listings</span></div><div><strong>0</strong><span>Reviews</span></div><div><strong>0</strong><span>Saved</span></div></div>
-      <div class="profile-tabs"><button class="is-active" type="button" data-profile-tab="listings">Listings</button><button type="button" data-profile-tab="saved">Saved</button><button type="button" data-profile-tab="reviews">Reviews</button></div>
+
+      <div class="insta-new-row">
+        <button class="insta-new" type="button" aria-label="New listing">
+          <span class="insta-new-plus">+</span>
+        </button>
+        <span class="insta-new-label">New</span>
+      </div>
+
+      <div class="profile-tabs insta-tabs">
+        <button class="is-active" type="button" data-profile-tab="listings" aria-label="Posts">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        </button>
+        <button type="button" data-profile-tab="saved" aria-label="Saved">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4.5A1.5 1.5 0 0 1 7.5 3h9A1.5 1.5 0 0 1 18 4.5V21l-6-3-6 3z"/></svg>
+        </button>
+        <button type="button" data-profile-tab="reviews" aria-label="Tagged">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M5 20a7 7 0 0 1 14 0"/></svg>
+        </button>
+      </div>
+
       <div class="profile-listing-grid" id="profileListings"><div class="profile-listing-tile image-tutoring"><img src="assets/hero-poster.jpg" alt="Your tutoring listing"><span>Calc II tutoring</span></div><div class="profile-listing-tile image-fridge"><img src="assets/hero-poster.jpg" alt="Your goods listing"><span>Campus goods</span></div><div class="profile-listing-tile image-design"><img src="assets/hero-poster.jpg" alt="Your gig listing"><span>Creative gigs</span></div></div>
       <div class="empty-panel profile-tab-empty" id="profileTabEmpty" hidden><div class="empty-panel-icon">✦</div><h3 id="profileEmptyTitle">No saved listings yet</h3><p id="profileEmptyText">Save useful campus listings and they will appear here.</p></div>
-      <section class="profile-settings" aria-labelledby="profileSettingsTitle">
-        <button class="profile-settings-heading" id="settingsToggle" type="button" aria-expanded="false" aria-controls="profileSettingsList"><span><span class="eyebrow">Personalise your experience</span><strong id="profileSettingsTitle">Settings</strong></span><span class="settings-chevron" aria-hidden="true">⌄</span></button>
-        <div class="profile-settings-list" id="profileSettingsList" hidden>
-          <label class="profile-setting-row"><span><strong>Activity notifications</strong><small>Get updates about messages and listings.</small></span><input type="checkbox" id="settingNotifications"><span class="setting-switch" aria-hidden="true"></span></label>
-          <label class="profile-setting-row"><span><strong>Motion effects</strong><small>Use animations in the interface.</small></span><input type="checkbox" id="settingMotion"><span class="setting-switch" aria-hidden="true"></span></label>
-          <a class="profile-setting-row profile-setting-link" href="preferences.html"><span><strong>Feed interests</strong><small>Update the categories used for your Home feed.</small></span><span aria-hidden="true">&rarr;</span></a>
-          <button class="profile-setting-row profile-setting-danger" id="clearLocalData" type="button"><span><strong>Clear local data</strong><small>Remove saved preferences and conversations from this browser.</small></span><span aria-hidden="true">&times;</span></button>
-        </div>
-      </section>
     </section>
   </div>
 </main>
+
+<!-- Edit profile modal -->
+<div class="modal-backdrop" id="editProfileModal" hidden>
+  <section class="listing-modal profile-edit-modal" role="dialog" aria-modal="true" aria-labelledby="editProfileTitle">
+    <button class="modal-close" id="closeEditProfileModal" type="button" aria-label="Close edit profile">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
+    </button>
+    <p class="eyebrow">Your profile</p>
+    <h2 id="editProfileTitle">Edit profile</h2>
+    <form id="editProfileForm" class="listing-form">
+      <label>Campus
+        <select id="editCampus"><option>Main Campus</option><option>Great East Campus</option></select>
+      </label>
+      <label>Profile picture
+        <input type="file" id="editAvatarFile" accept="image/*">
+        <small class="field-hint">JPG/PNG, max 500KB — shown as circle like Instagram.</small>
+      </label>
+      <label>Real name
+        <input type="text" id="editRealName" maxlength="40" placeholder="Methembe Nyathi">
+      </label>
+      <label>Username
+        <input type="text" id="editUsername" minlength="3" required>
+      </label>
+      <label>Bio
+        <textarea id="editBio" rows="3" maxlength="150" placeholder="Memento mori..."></textarea>
+      </label>
+      <button class="btn btn-primary auth-submit" type="submit">Save</button>
+    </form>
+  </section>
+</div>
 
 <nav class="bottom-nav" aria-label="Main navigation">
   <a class="bottom-nav-item" href="home.html" aria-label="Home"><span class="bottom-nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg></span><span>Home</span></a>

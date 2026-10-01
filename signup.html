@@ -40,17 +40,33 @@
       <p class="auth-subtitle">Join the Campus Connect community</p>
 
       <form id="signupForm" class="auth-form">
+        <label for="signupCampus">Campus Location</label>
+        <select id="signupCampus" name="campus" required>
+          <option value="Main Campus">Main Campus</option>
+          <option value="Great East Campus">Great East Campus</option>
+        </select>
+
+        <div class="signup-avatar-row">
+          <div class="signup-avatar-preview" id="signupAvatarPreview">CC</div>
+          <label class="signup-avatar-upload">
+            <span>Profile picture</span>
+            <small>JPG/PNG, max 500KB</small>
+            <input type="file" id="signupAvatar" accept="image/*" hidden>
+          </label>
+        </div>
+
+        <label for="signupRealName">Real name</label>
+        <input type="text" id="signupRealName" name="real_name" placeholder="e.g. Methembe Nyathi" maxlength="40">
+
         <label for="signupUsername">Username</label>
         <input type="text" id="signupUsername" name="username" placeholder="Choose a username" minlength="3" required>
 
         <label for="signupEmail">University Email</label>
         <input type="email" id="signupEmail" name="email" placeholder="ID@edenuniversity.education" required>
 
-        <label for="signupCampus">Campus Location</label>
-        <select id="signupCampus" name="campus" required>
-          <option value="Main Campus">Main Campus</option>
-          <option value="Great East Campus">Great East Campus</option>
-        </select>
+        <label for="signupBio">Bio <span class="label-hint">(optional)</span></label>
+        <textarea id="signupBio" name="bio" rows="3" maxlength="150" placeholder="Memento mori — short bio, what you hustle on campus..."></textarea>
+        <span class="char-hint" id="bioHint">0 / 150</span>
 
         <label for="signupPassword">Password</label>
         <input type="password" id="signupPassword" name="password" placeholder="Password (min 8 characters)" minlength="8" required>
