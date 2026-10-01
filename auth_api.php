@@ -25,6 +25,8 @@ if ($action === 'request_otp') {
 if ($action === 'verify_otp') {
     $result = ccw_verify_otp($body['email'] ?? '', $body['code'] ?? '');
     if (isset($result['error'])) respond(401, ['success' => false, 'error' => $result['error']]);
+    $token = ccw_create_token($result['user']['email']);
+    if ($token === null) respond(500, ['success' => false, 'error' => 'Unable to create a session. Please try again.']);
     session_set_cookie_params([
         'httponly' => true,
         'samesite' => 'Lax',
@@ -33,21 +35,20 @@ if ($action === 'verify_otp') {
     session_start();
     session_regenerate_id(true);
     $_SESSION['user'] = $result['user'];
-    $token = ccw_create_token($result['user']['email']);
     respond(200, ['success' => true, 'user' => $result['user'], 'token' => $token]);
 }
 
 if ($action === 'register') {
     $result = ccw_register_user($body['username'] ?? '', $body['email'] ?? '', $body['campus'] ?? '', $body['password'] ?? '');
     if (isset($result['error'])) respond(422, ['success' => false, 'error' => $result['error']]);
-    $token = ccw_create_token($result['user']['email']);
-    respond(201, ['success' => true, 'user' => $result['user'], 'token' => $token]);
+    respond(201, ['success' => true, 'verification_required' => true, 'user' => $result['user']]);
 }
 
 if ($action === 'login') {
     $result = ccw_authenticate_user($body['identifier'] ?? '', $body['password'] ?? '');
     if (isset($result['error'])) respond(401, ['success' => false, 'error' => $result['error']]);
     $token = ccw_create_token($result['user']['email']);
+    if ($token === null) respond(500, ['success' => false, 'error' => 'Unable to create a session. Please try again.']);
     respond(200, ['success' => true, 'user' => $result['user'], 'token' => $token]);
 }
 

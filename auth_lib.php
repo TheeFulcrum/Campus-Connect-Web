@@ -280,14 +280,13 @@ function ccw_public_user(array $user): array {
     ];
 }
 
-function ccw_create_token(string $email): string {
+function ccw_create_token(string $email): ?string {
     $token = bin2hex(random_bytes(32));
     $tokens = ccw_read_json(ccw_data_file('auth_tokens.json'));
     $now = time();
     $tokens = array_filter($tokens, static fn(array $record): bool => ($record['expires_at'] ?? 0) > $now);
     $tokens[hash('sha256', $token)] = ['email' => $email, 'expires_at' => $now + CCW_TOKEN_TTL_SECONDS];
-    ccw_write_json(ccw_data_file('auth_tokens.json'), $tokens);
-    return $token;
+    return ccw_write_json(ccw_data_file('auth_tokens.json'), $tokens) ? $token : null;
 }
 
 function ccw_user_for_token(?string $token): ?array {
@@ -297,7 +296,7 @@ function ccw_user_for_token(?string $token): ?array {
     if (!$record || ($record['expires_at'] ?? 0) <= time()) return null;
 
     foreach (ccw_read_json(ccw_data_file('users.json')) as $user) {
-        if (strcasecmp($user['email'] ?? '', $record['email']) === 0) return ccw_public_user($user);
+        if (strcasecmp($user['email'] ?? '', $record['email']) === 0 && !empty($user['email_verified'])) return ccw_public_user($user);
     }
     return null;
 }
