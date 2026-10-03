@@ -68,14 +68,29 @@
       var welcomeName = '';
       
       try {
-        welcomeName = sessionStorage.getItem('cc-welcome-splash') || '';
-        console.log('DEBUG: Retrieved cc-welcome-splash from sessionStorage:', welcomeName);
+        // Try to read username from cc-user JSON object (where it's actually stored)
+        var ccUserJson = sessionStorage.getItem('cc-user');
+        if (ccUserJson) {
+          try {
+            var userObj = JSON.parse(ccUserJson);
+            welcomeName = userObj.username || '';
+            console.log('DEBUG: Retrieved username from cc-user:', welcomeName);
+          } catch (parseErr) {
+            console.log('DEBUG: Failed to parse cc-user JSON:', parseErr);
+          }
+        }
+        // Fallback to cc-welcome-splash if it exists (backward compatibility)
+        if (!welcomeName) {
+          welcomeName = sessionStorage.getItem('cc-welcome-splash') || '';
+          console.log('DEBUG: Fallback - Retrieved cc-welcome-splash:', welcomeName);
+        }
         if (welcomeName) sessionStorage.removeItem('cc-welcome-splash');
         var hasVisitedTab = sessionStorage.getItem('cc-splash-seen') === '1';
         showStartupSplash = showStartupSplash || Boolean(welcomeName) || (!hasVisitedTab && navigationType === 'navigate');
         if (showStartupSplash) sessionStorage.setItem('cc-splash-seen', '1');
       } catch (e) {
         showStartupSplash = navigationType !== 'back_forward';
+        console.log('DEBUG: Exception in splash logic:', e);
       }
       
       if (showStartupSplash) {
