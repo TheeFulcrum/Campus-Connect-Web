@@ -44,19 +44,30 @@ document.addEventListener('DOMContentLoaded', function () {
         const result = await response.json();
         if (!response.ok || !result.success) throw new Error(result.error || 'Unable to log in.');
 
+        // Debug: log the result to see the structure
+        console.log('Login response:', result);
+        console.log('User object:', result.user);
+        console.log('Username:', result.user ? result.user.username : 'NO USER OBJECT');
+
+        // Handle both response formats: {user: {...}} and merged {...}
+        const userObj = result.user || result;
+        const username = userObj.username || '';
+        
         sessionStorage.setItem('cc-user', JSON.stringify({
-          username: result.user.username,
-          email: result.user.email,
-          campus: result.user.campus,
-          real_name: result.user.real_name || '',
-          bio: result.user.bio || '',
-          avatar: result.user.avatar || ''
+          username: username,
+          email: userObj.email || result.email || '',
+          campus: userObj.campus || result.campus || '',
+          real_name: userObj.real_name || result.real_name || '',
+          bio: userObj.bio || result.bio || '',
+          avatar: userObj.avatar || result.avatar || ''
         }));
         if (result.token) sessionStorage.setItem('cc-auth-token', result.token);
         if (sessionStorage.getItem('cc-pending-signup')) {
           window.location.href = 'preferences.html';
         } else {
-          sessionStorage.setItem('cc-welcome-splash', result.user.username);
+          // Debug: log what we're storing
+          console.log('Storing cc-welcome-splash:', username);
+          sessionStorage.setItem('cc-welcome-splash', username);
           window.location.href = 'home.html';
         }
       } catch (error) {

@@ -69,6 +69,7 @@
       
       try {
         welcomeName = sessionStorage.getItem('cc-welcome-splash') || '';
+        console.log('DEBUG: Retrieved cc-welcome-splash from sessionStorage:', welcomeName);
         if (welcomeName) sessionStorage.removeItem('cc-welcome-splash');
         var hasVisitedTab = sessionStorage.getItem('cc-splash-seen') === '1';
         showStartupSplash = showStartupSplash || Boolean(welcomeName) || (!hasVisitedTab && navigationType === 'navigate');
@@ -87,7 +88,11 @@
           return {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c];
         });
         
+        console.log('DEBUG: welcomeName=', welcomeName, 'safeWelcomeName=', safeWelcomeName);
+        console.log('DEBUG: full sessionStorage:', Object.keys(sessionStorage).map(function(k) { return k + '=' + sessionStorage.getItem(k); }).join(', '));
+        
         var splashLabel = safeWelcomeName ? 'Welcome, <span>' + safeWelcomeName + '</span>' : 'Campus<span>Connect</span>';
+        console.log('DEBUG: splashLabel=', splashLabel);
         splash.innerHTML = '<div class="startup-splash-inner"><img class="startup-splash-logo" src="assets/campus-connect-logo.svg" alt=""><div class="startup-splash-name">' + splashLabel + '</div></div>';
         
         document.documentElement.appendChild(splash);
