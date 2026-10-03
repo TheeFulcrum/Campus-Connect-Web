@@ -63,7 +63,15 @@ body{
   font-size:1.35rem;font-weight:800;letter-spacing:.02em;
   animation:splash-name-in .45s ease .42s both;
 }
-.startup-splash-name span{color:var(--accent);}
+.startup-splash-name span{
+  display:inline-block;
+}
+.startup-splash-name .primary{
+  color:var(--primary);
+}
+.startup-splash-name .accent{
+  color:var(--accent);
+}
 @keyframes splash-logo-in{
   from{opacity:0;transform:scale(0)}
   to{opacity:1;transform:scale(1)}
