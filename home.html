@@ -62,8 +62,13 @@
     line-height: 1.2;
   }
   .startup-splash-name span {
-    color: var(--primary);
     display: inline-block;
+  }
+  .startup-splash-name .primary {
+    color: var(--primary);
+  }
+  .startup-splash-name .accent {
+    color: var(--accent);
   }
   @keyframes pulse {
     0%, 100% { transform: scale(1); opacity: 1; }
@@ -118,7 +123,7 @@
         console.log('DEBUG: welcomeName=', welcomeName, 'safeWelcomeName=', safeWelcomeName);
         console.log('DEBUG: full sessionStorage:', Object.keys(sessionStorage).map(function(k) { return k + '=' + sessionStorage.getItem(k); }).join(', '));
         
-        var splashLabel = safeWelcomeName ? 'Welcome, <span>' + safeWelcomeName + '</span>' : 'Campus<span>Connect</span>';
+        var splashLabel = safeWelcomeName ? 'Welcome, <span class="accent">' + safeWelcomeName + '</span>' : '<span class="primary">Campus</span><span class="accent">Connect</span>';
         console.log('DEBUG: splashLabel=', splashLabel);
         splash.innerHTML = '<div class="startup-splash-inner"><img class="startup-splash-logo" src="assets/campus-connect-logo.svg" alt=""><div class="startup-splash-name">' + splashLabel + '</div></div>';
         
