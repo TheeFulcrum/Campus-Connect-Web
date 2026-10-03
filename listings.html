@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Browse Listings - Campus Connect</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .listings-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+            padding: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .listing-card {
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+            transition: transform 0.2s, box-shadow 0.2s;
+            cursor: pointer;
+            background: var(--card-bg);
+        }
+        .listing-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .listing-image {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            background: var(--bg-secondary);
+        }
+        .listing-info {
+            padding: 15px;
+        }
+        .listing-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .listing-price {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 10px;
+        }
+        .listing-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 10px;
+        }
+        .listing-description {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 10px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .filter-bar {
+            padding: 20px;
+            background: var(--card-bg);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .filter-bar select {
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: var(--card-bg);
+            color: var(--text);
+            font-size: 14px;
+        }
+        .filter-bar button {
+            padding: 8px 16px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .seller-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding-top: 10px;
+            border-top: 1px solid var(--border);
+            font-size: 12px;
+        }
+        .seller-avatar {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            object-fit: cover;
+            background: var(--bg-secondary);
+        }
+    </style>
+</head>
+<body>
+    <header class="site-header">
+        <div class="container header-inner">
+            <div class="logo" aria-label="Campus Connect">
+                <img src="assets/campus-connect-logo.svg" alt="" class="logo-mark">
+                <span class="logo-wordmark">Campus<span>Connect</span></span>
+            </div>
+            <nav class="nav-links">
+                <a href="home.html">Home</a>
+                <a href="listings.html" class="active">Listings</a>
+                <a href="profile.html">Profile</a>
+                <a href="messages.html">Messages</a>
+                <a href="logout.php" class="btn btn-outline nav-cta">Log Out</a>
+            </nav>
+        </div>
+    </header>
+
+    <div class="filter-bar">
+        <select id="campusFilter">
+            <option value="">All Campuses</option>
+            <option value="Main Campus">Main Campus</option>
+            <option value="Great East Campus">Great East Campus</option>
+        </select>
+
+        <select id="categoryFilter">
+            <option value="">All Categories</option>
+            <option value="Textbooks">Textbooks</option>
+            <option value="Electronics">Electronics</option>
+            <option value="Furniture">Furniture</option>
+            <option value="Clothing">Clothing</option>
+            <option value="Services">Services</option>
+            <option value="Housing">Housing</option>
+            <option value="Rides">Rides</option>
+            <option value="Other">Other</option>
+        </select>
+
+        <button id="searchBtn">Search</button>
+        <a href="create-listing.html" class="btn btn-primary" style="margin-left: auto;">+ Post Listing</a>
+    </div>
+
+    <div class="listings-container" id="listingsContainer">
+        <p style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--text-secondary);">Loading listings...</p>
+    </div>
+
+    <script src="listings.js"></script>
+</body>
+</html>

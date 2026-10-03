@@ -95,9 +95,36 @@ function ccw_db(): PDO {
         attempts INTEGER NOT NULL DEFAULT 0
     );');
 
+    $pdo->exec('CREATE TABLE IF NOT EXISTS listings (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        title TEXT NOT NULL,
+        description TEXT NOT NULL,
+        category TEXT NOT NULL,
+        campus TEXT NOT NULL,
+        price REAL,
+        status TEXT NOT NULL DEFAULT "active",
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    );');
+
+    $pdo->exec('CREATE TABLE IF NOT EXISTS listing_images (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        listing_id INTEGER NOT NULL,
+        image_url TEXT NOT NULL,
+        display_order INTEGER DEFAULT 0,
+        created_at TEXT NOT NULL,
+        FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE CASCADE
+    );');
+
     $pdo->exec('CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);');
     $pdo->exec('CREATE INDEX IF NOT EXISTS idx_tokens_email ON tokens(email);');
     $pdo->exec('CREATE INDEX IF NOT EXISTS idx_otp_email ON otp_codes(email);');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_listings_user_id ON listings(user_id);');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_listings_campus ON listings(campus);');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_listings_category ON listings(category);');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_listing_images_listing_id ON listing_images(listing_id);');
 
     ccw_migrate_legacy_data($pdo);
     return $pdo;

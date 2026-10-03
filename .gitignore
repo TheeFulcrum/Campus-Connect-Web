@@ -1,8 +1,11 @@
-# User data - NEVER commit this
+# User data & databases - NEVER commit this
 users.json
 waitlist.csv
 auth_tokens.json
 otp_codes.json
+*.sqlite
+*.sqlite3
+*.db
 
 # Node modules
 node_modules/
@@ -12,6 +15,7 @@ node_modules/
 .env.*
 *.env
 **/*.env
+Plain Text.env
 
 # VS Code settings (optional - remove if you want to share)
 .vscode/

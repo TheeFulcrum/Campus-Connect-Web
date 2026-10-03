@@ -127,21 +127,29 @@ campus-connect-mobile/
     ├── auth.js                   # Login/signup form handling
     ├── home.js                   # Session check + logout
     ├── login.php                 # Auth backend
+    ├── auth_api.php              # Shared REST API for mobile & web auth
+    ├── auth_lib.php              # Auth business logic, token & password handling
+    ├── login.php                 # Auth backend
     ├── signup.php                # Account creation backend
     └── submit.php                # Waitlist signup backend
 ```
 
 ---
 
-## Known Limitations
+## Security & Architecture Highlights
 
-These are acceptable for a prototype/academic submission but **must** be addressed before any real deployment:
+- **Password Hashing** — Passwords are standard-hashed using `password_hash()` (BCrypt) on the PHP backend and `PBKDF2WithHmacSHA256` locally in Android.
+- **Shared Authentication Backend** — `auth_api.php` serves both the web frontend and mobile client, unifying user authentication across platforms.
+- **Session Tokens & Cookies** — Token-based session authentication with `auth_tokens.json` / SQLite token store and HttpOnly cookies.
+- **OTP Verification** — 6-digit OTP delivery support via Resend integration with hashing and attempt rate-limiting.
 
-- **Passwords are stored in plaintext** — both in the Android SQLite database and in the website's `users.json`. Needs hashing (e.g. `password_hash()` in PHP, or a library like jBCrypt in Java) before going live.
-- **No real session management** — the website uses `sessionStorage` as a stand-in for login state, which is client-side only and can be forged. The Android app has no persisted session either; closing the app returns to the login screen every time.
-- **No server-side validation duplication** — client-side JS validation exists, but a determined user could bypass it; server-side checks exist in the PHP files but should be hardened further for production.
-- **Android and website accounts are separate** — signing up on the app does not create a website account and vice versa. There is currently no shared backend/database between the two.
-- **Flat-file storage on the website** (`users.json`, `waitlist.csv`) — fine for a prototype, but won't scale or handle concurrent writes safely; a real database is needed for production.
+---
+
+## Deployment & Production Considerations
+
+- **HTTPS Deployment** — Ensure the backend is served over HTTPS in production.
+- **Environment & Secrets** — Keep `.env` and `Plain Text.env` out of public web directories and version control.
+- **Database Scaling** — Migrate flat-file/SQLite stores to a managed production database (e.g. MySQL/PostgreSQL) as traffic grows.
 
 ---
 
@@ -149,13 +157,10 @@ These are acceptable for a prototype/academic submission but **must** be address
 
 Suggested next steps, roughly in priority order:
 
-1. **Session persistence** — `SharedPreferences` on Android, real server-side sessions/cookies on the website, so users stay logged in between visits.
-2. **Password hashing** — across both the app and the website backend.
-3. **Shared backend** — a single API/database so app and website accounts are the same accounts.
-4. **Marketplace feed** — the actual gig/goods listings, filtered by each user's selected preferences and campus.
-5. **In-app messaging** between buyers and sellers.
-6. **Reviews & ratings** system.
-7. **University partnerships / official endorsements** as part of the go-to-market strategy.
+1. **Marketplace Feed** — The actual gig/goods listings, filtered by user preferences and campus.
+2. **In-app Messaging** between buyers and sellers.
+3. **Reviews & Ratings** system.
+4. **University Partnerships / Official Endorsements** as part of the go-to-market strategy.
 
 ---
 

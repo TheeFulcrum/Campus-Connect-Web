@@ -245,3 +245,37 @@ The next immediate steps are:
 ## 9. Final Note
 
 The work completed so far has moved Campus Connect from a local prototype toward a more realistic production-ready architecture, especially in the areas of authentication, onboarding flow, OTP verification, and mobile app configuration.
+
+---
+
+## 10. Latest Web and Android Parity Pass (2026-10-01)
+
+The Android app was brought closer to the current website behavior in the following areas:
+
+- Android signup now collects optional real name and bio, matching the web signup form.
+- Android profile now displays and edits username, real name, campus, bio, and profile image.
+- Profile edits are sent to the shared auth API using the signed-in bearer token.
+- The auth API rejects profile updates without a valid token.
+- Android caches the profile fields returned by registration, login, OTP verification, and profile updates.
+- Added a non-destructive local SQLite migration for the Android real-name field.
+- Added category normalization so broad interests such as Services and Goods & Textbooks match specific feed listing categories.
+- Android signup password copy now matches the server requirement of at least eight characters.
+
+### Validation performed
+
+- Android `test` and `assembleDebug` completed successfully with the local API URL override.
+- PHP syntax checks passed for `auth_api.php` and `auth_lib.php`.
+- JavaScript syntax checks passed for the auth and OTP scripts.
+- Unauthenticated profile-update request was rejected with HTTP 401.
+
+### Remaining platform differences
+
+- Android listings and conversations are still stored locally; they are not synchronized with the web app through a shared listings/messages API.
+- Website messaging currently uses browser-local demo conversations and scripted replies; it is not production server messaging.
+- Website profile saved/review/follower sections contain prototype/demo content and do not yet have full Android equivalents.
+- The app's local feed cache and local messaging are prototype functionality, not shared multi-user production data.
+- The development PHP server runs on the laptop LAN only; it is not the always-on public server.
+
+### Current status
+
+Authentication and basic profile data are now shared between web and Android. The visual surfaces are platform-native rather than pixel-identical. The next meaningful parity step is a real shared listings API, followed by server-backed conversations and messages; these should replace the current local/demo data rather than copying demo behavior into Android.

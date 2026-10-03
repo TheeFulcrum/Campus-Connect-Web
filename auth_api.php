@@ -60,6 +60,19 @@ if ($action === 'login') {
 }
 
 $token = ccw_bearer_token();
+if ($action === 'update_profile') {
+    $authenticatedUser = ccw_user_for_token($token);
+    if (!$authenticatedUser) respond(401, ['success' => false, 'error' => 'Session expired. Please log in again.']);
+
+    $fields = [];
+    foreach (['username', 'real_name', 'bio', 'avatar', 'campus'] as $field) {
+        if (array_key_exists($field, $body)) $fields[$field] = $body[$field];
+    }
+    $result = ccw_update_profile($authenticatedUser['email'], $fields);
+    if (isset($result['error'])) respond(422, ['success' => false, 'error' => $result['error']]);
+    respond(200, ['success' => true, 'user' => $result['user']]);
+}
+
 if ($action === 'session') {
     $user = ccw_user_for_token($token);
     if (!$user) respond(401, ['success' => false, 'error' => 'Session expired.']);

@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Listing Detail - Campus Connect</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .detail-container {
+            max-width: 1000px;
+            margin: 40px auto;
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 30px;
+            padding: 0 20px;
+        }
+        .detail-main {
+            background: var(--card-bg);
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+        .image-gallery {
+            width: 100%;
+            height: 400px;
+            background: var(--bg-secondary);
+            overflow: hidden;
+        }
+        .image-gallery img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .listing-content {
+            padding: 30px;
+        }
+        .listing-header {
+            margin-bottom: 20px;
+        }
+        .listing-title {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 12px;
+        }
+        .listing-meta {
+            display: flex;
+            gap: 20px;
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+        }
+        .listing-price {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 20px;
+        }
+        .detail-section {
+            margin-bottom: 30px;
+        }
+        .detail-section h3 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: var(--text);
+        }
+        .detail-section p {
+            color: var(--text-secondary);
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .sidebar {
+            position: sticky;
+            top: 20px;
+            height: fit-content;
+        }
+        .seller-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .seller-header {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        .seller-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            object-fit: cover;
+            background: var(--bg-secondary);
+        }
+        .seller-info {
+            flex: 1;
+        }
+        .seller-name {
+            font-weight: 600;
+            font-size: 16px;
+        }
+        .seller-username {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+        .action-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .btn-message {
+            padding: 12px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .btn-message:hover {
+            opacity: 0.9;
+        }
+        .btn-share {
+            padding: 12px;
+            background: var(--bg-secondary);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .loading, .error {
+            text-align: center;
+            padding: 60px 20px;
+            font-size: 16px;
+        }
+        .error {
+            color: red;
+        }
+        @media (max-width: 768px) {
+            .detail-container {
+                grid-template-columns: 1fr;
+            }
+            .sidebar {
+                position: static;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="site-header">
+        <div class="container header-inner">
+            <div class="logo" aria-label="Campus Connect">
+                <img src="assets/campus-connect-logo.svg" alt="" class="logo-mark">
+                <span class="logo-wordmark">Campus<span>Connect</span></span>
+            </div>
+            <nav class="nav-links">
+                <a href="home.html">Home</a>
+                <a href="listings.html">Listings</a>
+                <a href="profile.html">Profile</a>
+                <a href="messages.html">Messages</a>
+                <a href="logout.php" class="btn btn-outline nav-cta">Log Out</a>
+            </nav>
+        </div>
+    </header>
+
+    <div class="detail-container" id="container">
+        <div class="loading">Loading listing...</div>
+    </div>
+
+    <script>
+        const token = sessionStorage.getItem('cc-auth-token');
+        const user = JSON.parse(sessionStorage.getItem('cc-user') || '{}');
+
+        if (!token) {
+            window.location.href = 'login.html';
+        }
+
+        const params = new URLSearchParams(window.location.search);
+        const listingId = params.get('id');
+
+        if (!listingId) {
+            document.getElementById('container').innerHTML = '<div class="error">No listing ID provided.</div>';
+        } else {
+            loadListing();
+        }
+
+        async function loadListing() {
+            try {
+                const response = await fetch('api/listings/view.php?id=' + listingId);
+                const result = await response.json();
+
+                if (!result.success) {
+                    document.getElementById('container').innerHTML = '<div class="error">' + result.error + '</div>';
+                    return;
+                }
+
+                const listing = result.listing;
+                const imageUrl = listing.images && listing.images.length > 0 
+                    ? listing.images[0].image_url 
+                    : 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400"%3E%3Crect fill="%23ddd" width="400" height="400"/%3E%3C/svg%3E';
+                
+                const priceStr = listing.price ? '$' + parseFloat(listing.price).toFixed(2) : 'Negotiable';
+
+                const html = `
+                    <div class="detail-main">
+                        <div class="image-gallery">
+                            <img src="${imageUrl}" alt="${listing.title}">
+                        </div>
+                        <div class="listing-content">
+                            <div class="listing-header">
+                                <div class="listing-title">${listing.title}</div>
+                                <div class="listing-meta">
+                                    <span>${listing.category}</span>
+                                    <span>${listing.campus}</span>
+                                    <span>${new Date(listing.created_at).toLocaleDateString()}</span>
+                                </div>
+                            </div>
+                            <div class="listing-price">${priceStr}</div>
+                            
+                            <div class="detail-section">
+                                <h3>Description</h3>
+                                <p>${listing.description}</p>
+                            </div>
+
+                            <div class="detail-section">
+                                <h3>Seller</h3>
+                                <p>${listing.user_profile.real_name || listing.user_profile.username}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="sidebar">
+                        <div class="seller-card">
+                            <div class="seller-header">
+                                <img src="${listing.user_profile.avatar || 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ccircle cx=%2250%22 cy=%2250%22 r=%2250%22 fill=%22%23ccc%22/%3E%3C/svg%3E'}" alt="" class="seller-avatar">
+                                <div class="seller-info">
+                                    <div class="seller-name">${listing.user_profile.real_name || 'User'}</div>
+                                    <div class="seller-username">@${listing.user_profile.username}</div>
+                                </div>
+                            </div>
+                            <div class="action-buttons">
+                                <button class="btn-message" onclick="sendMessage('${listing.user_id}', '${listing.title}')">Message Seller</button>
+                                <button class="btn-share">Share</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                document.getElementById('container').innerHTML = html;
+            } catch (error) {
+                document.getElementById('container').innerHTML = '<div class="error">Error loading listing: ' + error.message + '</div>';
+            }
+        }
+
+        function sendMessage(sellerId, listingTitle) {
+            // TODO: Implement messaging
+            alert('Messaging feature coming soon!');
+        }
+    </script>
+</body>
+</html>
