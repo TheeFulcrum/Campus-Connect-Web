@@ -95,6 +95,15 @@ function ccw_db(): PDO {
         attempts INTEGER NOT NULL DEFAULT 0
     );');
 
+    $pdo->exec('CREATE TABLE IF NOT EXISTS password_reset_tokens (
+        token TEXT PRIMARY KEY,
+        email TEXT NOT NULL,
+        token_hash TEXT NOT NULL,
+        expires_at INTEGER NOT NULL,
+        used INTEGER DEFAULT 0,
+        created_at TEXT NOT NULL
+    );');
+
     $pdo->exec('CREATE TABLE IF NOT EXISTS listings (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER NOT NULL,
@@ -121,6 +130,7 @@ function ccw_db(): PDO {
     $pdo->exec('CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);');
     $pdo->exec('CREATE INDEX IF NOT EXISTS idx_tokens_email ON tokens(email);');
     $pdo->exec('CREATE INDEX IF NOT EXISTS idx_otp_email ON otp_codes(email);');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_password_reset_email ON password_reset_tokens(email);');
     $pdo->exec('CREATE INDEX IF NOT EXISTS idx_listings_user_id ON listings(user_id);');
     $pdo->exec('CREATE INDEX IF NOT EXISTS idx_listings_campus ON listings(campus);');
     $pdo->exec('CREATE INDEX IF NOT EXISTS idx_listings_category ON listings(category);');
@@ -673,4 +683,134 @@ function ccw_verify_token_and_get_user(?string $token): ?array {
     }
 
     return $user;
+}
+
+/**
+ * Generate a password reset token for a user email
+ * Returns an array with the reset token or error message
+ */
+function ccw_create_password_reset_token(string $email): array {
+    $email = strtolower(trim($email));
+
+    $pdo = ccw_db();
+    $stmt = $pdo->prepare('SELECT id FROM users WHERE LOWER(email) = LOWER(:email) LIMIT 1');
+    $stmt->execute(['email' => $email]);
+    $user = $stmt->fetch();
+
+    if (!$user) {
+        // For security, don't reveal if email exists
+        return ['success' => true, 'message' => 'If an account with that email exists, a password reset link will be sent.'];
+    }
+
+    // Generate a secure random token
+    $resetToken = bin2hex(random_bytes(32));
+    $tokenHash = hash('sha256', $resetToken);
+    $expiresAt = time() + (60 * 60); // 1 hour expiration
+
+    // Store in database
+    try {
+        $stmt = $pdo->prepare('INSERT INTO password_reset_tokens (token, email, token_hash, expires_at, created_at) VALUES (:token, :email, :token_hash, :expires_at, :created_at)');
+        $stmt->execute([
+            'token' => $resetToken,
+            'email' => $email,
+            'token_hash' => $tokenHash,
+            'expires_at' => $expiresAt,
+            'created_at' => date('c'),
+        ]);
+    } catch (Throwable $e) {
+        return ['success' => false, 'error' => 'Unable to generate reset token.'];
+    }
+
+    // In production, you would send this via email
+    // For now, return the token to be used in reset link
+    return [
+        'success' => true,
+        'message' => 'If an account with that email exists, a password reset link will be sent.',
+        'reset_token' => $resetToken, // In production, send via email only
+        'reset_url' => 'reset-password.html?token=' . urlencode($resetToken),
+    ];
+}
+
+/**
+ * Verify a password reset token and return user info
+ */
+function ccw_verify_reset_token(string $resetToken): array {
+    if (empty($resetToken)) {
+        return ['success' => false, 'error' => 'Invalid reset token.'];
+    }
+
+    $tokenHash = hash('sha256', $resetToken);
+    $pdo = ccw_db();
+
+    $stmt = $pdo->prepare('SELECT token, email, expires_at, used FROM password_reset_tokens WHERE token_hash = :token_hash LIMIT 1');
+    $stmt->execute(['token_hash' => $tokenHash]);
+    $tokenRecord = $stmt->fetch();
+
+    if (!$tokenRecord) {
+        return ['success' => false, 'error' => 'Invalid or expired reset token.'];
+    }
+
+    if ((int) $tokenRecord['used'] === 1) {
+        return ['success' => false, 'error' => 'This reset token has already been used.'];
+    }
+
+    if (time() > (int) $tokenRecord['expires_at']) {
+        return ['success' => false, 'error' => 'Reset token has expired. Please request a new one.'];
+    }
+
+    return [
+        'success' => true,
+        'email' => $tokenRecord['email'],
+        'token' => $resetToken,
+    ];
+}
+
+/**
+ * Reset password using a valid reset token
+ */
+function ccw_reset_password_with_token(string $resetToken, string $newPassword): array {
+    $tokenVerification = ccw_verify_reset_token($resetToken);
+    if (!$tokenVerification['success']) {
+        return $tokenVerification;
+    }
+
+    $email = $tokenVerification['email'];
+
+    // Validate password strength
+    if (strlen($newPassword) < 8) {
+        return ['success' => false, 'error' => 'Password must be at least 8 characters long.'];
+    }
+
+    $pdo = ccw_db();
+
+    // Find user by email
+    $stmt = $pdo->prepare('SELECT id FROM users WHERE LOWER(email) = LOWER(:email) LIMIT 1');
+    $stmt->execute(['email' => $email]);
+    $user = $stmt->fetch();
+
+    if (!$user) {
+        return ['success' => false, 'error' => 'User not found.'];
+    }
+
+    // Update password
+    try {
+        $update = $pdo->prepare('UPDATE users SET password = :password WHERE id = :id');
+        $update->execute([
+            'password' => password_hash($newPassword, PASSWORD_DEFAULT),
+            'id' => (int) $user['id'],
+        ]);
+
+        // Mark token as used
+        $tokenHash = hash('sha256', $resetToken);
+        $markUsed = $pdo->prepare('UPDATE password_reset_tokens SET used = 1 WHERE token_hash = :token_hash');
+        $markUsed->execute(['token_hash' => $tokenHash]);
+
+        return [
+            'success' => true,
+            'message' => 'Password has been reset successfully. You can now log in with your new password.',
+        ];
+    } catch (Throwable $e) {
+        return ['success' => false, 'error' => 'Unable to reset password. Please try again.'];
+    }
+}
 }
