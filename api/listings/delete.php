@@ -30,27 +30,7 @@ if ($id <= 0) {
 }
 
 $pdo = ccw_db();
-
-// Verify token and get user
-$tokenStmt = $pdo->prepare('SELECT email FROM tokens WHERE token_hash = :hash AND expires_at > :now');
-$tokenStmt->execute(['hash' => hash('sha256', $token), 'now' => time()]);
-$tokenRow = $tokenStmt->fetch();
-
-if (!$tokenRow) {
-    http_response_code(401);
-    echo json_encode(['success' => false, 'error' => 'Invalid or expired token.']);
-    exit;
-}
-
-$userStmt = $pdo->prepare('SELECT id FROM users WHERE email = :email');
-$userStmt->execute(['email' => $tokenRow['email']]);
-$user = $userStmt->fetch();
-
-if (!$user) {
-    http_response_code(401);
-    echo json_encode(['success' => false, 'error' => 'User not found.']);
-    exit;
-}
+$user = ccw_verify_token_and_get_user($token);
 
 // Verify ownership
 $listingStmt = $pdo->prepare('SELECT user_id FROM listings WHERE id = :id');
@@ -64,7 +44,6 @@ if (!$listing || $listing['user_id'] != $user['id']) {
 }
 
 try {
-    $pdo->prepare('DELETE FROM listing_images WHERE listing_id = :id')->execute(['id' => $id]);
     $pdo->prepare('DELETE FROM listings WHERE id = :id')->execute(['id' => $id]);
 
     echo json_encode([

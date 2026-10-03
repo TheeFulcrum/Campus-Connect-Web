@@ -152,17 +152,23 @@
 <body>
     <header class="site-header">
         <div class="container header-inner">
-            <div class="logo" aria-label="Campus Connect">
+            <a href="home.html" class="logo" aria-label="Campus Connect home">
                 <img src="assets/campus-connect-logo.svg" alt="" class="logo-mark">
                 <span class="logo-wordmark">Campus<span>Connect</span></span>
-            </div>
+            </a>
             <nav class="nav-links">
                 <a href="home.html">Home</a>
                 <a href="listings.html">Listings</a>
                 <a href="profile.html">Profile</a>
                 <a href="messages.html">Messages</a>
-                <a href="logout.php" class="btn btn-outline nav-cta">Log Out</a>
             </nav>
+            <div class="header-actions">
+                <button id="themeToggle" class="theme-toggle" aria-label="Toggle dark mode" type="button">
+                    <span class="theme-icon theme-icon-sun">☀️</span>
+                    <span class="theme-icon theme-icon-moon">🌙</span>
+                </button>
+                <button id="logoutBtn" class="btn btn-outline nav-cta" type="button">Log Out</button>
+            </div>
         </div>
     </header>
 
@@ -172,7 +178,6 @@
 
     <script>
         const token = sessionStorage.getItem('cc-auth-token');
-        const user = JSON.parse(sessionStorage.getItem('cc-user') || '{}');
 
         if (!token) {
             window.location.href = 'login.html';

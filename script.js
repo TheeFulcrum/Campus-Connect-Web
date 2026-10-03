@@ -145,3 +145,17 @@ document.addEventListener('DOMContentLoaded', function () {
     msg.style.color = color;
   }
 });
+
+// Global logout handler
+document.addEventListener('DOMContentLoaded', function() {
+  const logoutBtn = document.getElementById('logoutBtn');
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', function() {
+      fetch('logout.php', {method: 'POST'}).finally(function() {
+        sessionStorage.removeItem('cc-user');
+        sessionStorage.removeItem('cc-auth-token');
+        location.href = 'index.html';
+      });
+    });
+  }
+});

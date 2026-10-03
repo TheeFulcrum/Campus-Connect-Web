@@ -643,3 +643,34 @@ function ccw_bearer_token(): ?string {
     $header = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
     return preg_match('/^Bearer\s+(.+)$/i', $header, $matches) === 1 ? trim($matches[1]) : null;
 }
+
+function ccw_verify_token_and_get_user(?string $token): ?array {
+    if (empty($token)) {
+        http_response_code(401);
+        echo json_encode(['success' => false, 'error' => 'Not authenticated.']);
+        exit;
+    }
+
+    $pdo = ccw_db();
+    $tokenStmt = $pdo->prepare('SELECT email FROM tokens WHERE token_hash = :hash AND expires_at > :now');
+    $tokenStmt->execute(['hash' => hash('sha256', $token), 'now' => time()]);
+    $tokenRow = $tokenStmt->fetch();
+
+    if (!$tokenRow) {
+        http_response_code(401);
+        echo json_encode(['success' => false, 'error' => 'Invalid or expired token.']);
+        exit;
+    }
+
+    $userStmt = $pdo->prepare('SELECT id FROM users WHERE email = :email');
+    $userStmt->execute(['email' => $tokenRow['email']]);
+    $user = $userStmt->fetch();
+
+    if (!$user) {
+        http_response_code(401);
+        echo json_encode(['success' => false, 'error' => 'User not found.']);
+        exit;
+    }
+
+    return $user;
+}
