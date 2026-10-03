@@ -5,6 +5,109 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Browse Listings - Campus Connect</title>
     <link rel="stylesheet" href="style.css">
+    <script>
+      (function () {
+        try {
+          var saved = localStorage.getItem('cc-theme');
+          var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+          document.documentElement.setAttribute('data-theme', theme);
+        } catch (e) {}
+      })();
+    </script>
+    <!-- Splash Screen -->
+    <style>
+      .startup-splash {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: var(--bg);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        opacity: 1;
+        transition: opacity 0.6s ease-out;
+      }
+      .startup-splash.fade-out {
+        opacity: 0;
+        pointer-events: none;
+      }
+      .startup-splash-inner {
+        text-align: center;
+        animation: pulse 1.5s ease-in-out infinite;
+      }
+      .startup-splash-logo {
+        width: 80px;
+        height: 80px;
+        margin-bottom: 20px;
+        opacity: 0.9;
+      }
+      .startup-splash-name {
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--text);
+        letter-spacing: -0.5px;
+      }
+      .startup-splash-name span {
+        color: var(--primary);
+      }
+      @keyframes pulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+      }
+    </style>
+    <script>
+      (function() {
+        try {
+          var navigationEntry = window.performance && performance.getEntriesByType ? performance.getEntriesByType('navigation')[0] : null;
+          var navigationType = navigationEntry ? navigationEntry.type : 'navigate';
+          var showStartupSplash = navigationType === 'reload';
+          var welcomeName = '';
+          
+          try {
+            welcomeName = sessionStorage.getItem('cc-welcome-splash') || '';
+            if (welcomeName) sessionStorage.removeItem('cc-welcome-splash');
+            var hasVisitedTab = sessionStorage.getItem('cc-splash-seen') === '1';
+            showStartupSplash = showStartupSplash || Boolean(welcomeName) || (!hasVisitedTab && navigationType === 'navigate');
+            if (showStartupSplash) sessionStorage.setItem('cc-splash-seen', '1');
+          } catch (e) {
+            showStartupSplash = navigationType !== 'back_forward';
+          }
+          
+          if (showStartupSplash) {
+            var splash = document.createElement('div');
+            splash.className = 'startup-splash';
+            splash.setAttribute('role', 'status');
+            splash.setAttribute('aria-label', 'Loading Campus Connect');
+            
+            var safeWelcomeName = (welcomeName || '').replace(/[&<>"']/g, function (c) {
+              return {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c];
+            });
+            
+            var splashLabel = safeWelcomeName ? 'Welcome, <span>' + safeWelcomeName + '</span>' : 'Campus<span>Connect</span>';
+            splash.innerHTML = '<div class="startup-splash-inner"><img class="startup-splash-logo" src="assets/campus-connect-logo.svg" alt=""><div class="startup-splash-name">' + splashLabel + '</div></div>';
+            
+            document.documentElement.appendChild(splash);
+            window.campusSplashScreen = splash;
+            
+            setTimeout(function() {
+              if (window.campusSplashScreen) {
+                window.campusSplashScreen.classList.add('fade-out');
+                setTimeout(function() {
+                  if (window.campusSplashScreen && window.campusSplashScreen.parentNode) {
+                    window.campusSplashScreen.parentNode.removeChild(window.campusSplashScreen);
+                  }
+                }, 600);
+              }
+            }, 2500);
+          }
+        } catch (e) {
+          console.error('Splash screen error:', e);
+        }
+      })();
+    </script>
     <style>
         .listings-container {
             display: grid;

@@ -56,7 +56,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (sessionStorage.getItem('cc-pending-signup')) {
           window.location.href = 'preferences.html';
         } else {
-          sessionStorage.setItem('cc-welcome-splash', result.username);
+          sessionStorage.setItem('cc-welcome-splash', result.user.username);
           window.location.href = 'home.html';
         }
       } catch (error) {

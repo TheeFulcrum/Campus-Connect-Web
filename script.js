@@ -1,39 +1,6 @@
 document.addEventListener('DOMContentLoaded', function () {
-  const navigationEntry = window.performance && performance.getEntriesByType
-    ? performance.getEntriesByType('navigation')[0]
-    : null;
-  const navigationType = navigationEntry ? navigationEntry.type : 'navigate';
-  let showStartupSplash = navigationType === 'reload';
-  let welcomeName = '';
-
-  try {
-    welcomeName = sessionStorage.getItem('cc-welcome-splash') || '';
-    if (welcomeName) sessionStorage.removeItem('cc-welcome-splash');
-    const hasVisitedTab = sessionStorage.getItem('cc-splash-seen') === '1';
-    showStartupSplash = showStartupSplash || Boolean(welcomeName) || (!hasVisitedTab && navigationType === 'navigate');
-    if (showStartupSplash) sessionStorage.setItem('cc-splash-seen', '1');
-  } catch (e) {
-    showStartupSplash = navigationType !== 'back_forward';
-  }
-
-  // Match the Android startup moment on first load or a real page reload.
-  if (showStartupSplash) {
-    const splash = document.createElement('div');
-    splash.className = 'startup-splash';
-    splash.setAttribute('role', 'status');
-    splash.setAttribute('aria-label', 'Loading Campus Connect');
-    const safeWelcomeName = welcomeName.replace(/[&<>"']/g, function (character) {
-      return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character];
-    });
-    const splashLabel = safeWelcomeName ? 'Welcome, <span>' + safeWelcomeName + '</span>' : 'Campus<span>Connect</span>';
-    splash.innerHTML = '<div class="startup-splash-inner"><img class="startup-splash-logo" src="assets/campus-connect-logo.svg" alt=""><div class="startup-splash-name">' + splashLabel + '</div></div>';
-    document.body.prepend(splash);
-    window.setTimeout(function () {
-      splash.classList.add('is-leaving');
-      window.setTimeout(function () { splash.remove(); }, 400);
-    }, 2000);
-  }
-
+  // Splash screen is now handled in inline script in <head>
+  
   // ---- Theme toggle (light/dark) ----
   const themeToggle = document.getElementById('themeToggle');
   const root = document.documentElement;
