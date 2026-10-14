@@ -1,6 +1,7 @@
 <?php
 require __DIR__ . '/auth_lib.php';
 ccw_load_environment();
+require_once __DIR__ . '/api/_rate_limit.php';
 
 header('Content-Type: application/json');
 
@@ -17,6 +18,7 @@ if (!is_array($body)) $body = $_POST;
 $action = $body['action'] ?? '';
 
 if ($action === 'request_otp') {
+    ccw_rate_limit_or_fail('otp', ccw_client_ip(), 5, 300);
     $result = ccw_request_otp($body['email'] ?? '');
     if (isset($result['error'])) respond(422, ['success' => false, 'error' => $result['error']]);
     respond(200, ['success' => true]);
@@ -45,6 +47,7 @@ if ($action === 'register') {
 }
 
 if ($action === 'login') {
+    ccw_rate_limit_or_fail('login', ccw_client_ip(), 10, 300);
     $result = ccw_authenticate_user($body['identifier'] ?? '', $body['password'] ?? '');
     if (isset($result['error'])) respond(401, ['success' => false, 'error' => $result['error']]);
     session_set_cookie_params([

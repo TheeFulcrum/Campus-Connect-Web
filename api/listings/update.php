@@ -33,6 +33,8 @@ if ($id <= 0) {
     exit;
 }
 
+$imageIds = $body['image_ids'] ?? null;
+
 $pdo = ccw_db();
 $user = ccw_verify_token_and_get_user($token);
 
@@ -73,6 +75,24 @@ $updateClause = implode(', ', $updates);
 try {
     $stmt = $pdo->prepare("UPDATE listings SET $updateClause WHERE id = :id");
     $stmt->execute($params);
+
+    // Append additional uploaded images when image_ids (serving URLs) are provided.
+    if (is_array($imageIds) && $imageIds) {
+        $urls = [];
+        foreach (array_slice($imageIds, 0, 10) as $url) {
+            $url = trim((string) $url);
+            if (preg_match('#^/api/uploads/serve\.php\?f=[a-z0-9_%.-]+$#i', $url)) $urls[] = $url;
+        }
+        if ($urls) {
+            $oStmt = $pdo->prepare('SELECT COALESCE(MAX(display_order), -1) + 1 FROM listing_images WHERE listing_id = :id');
+            $oStmt->execute(['id' => $id]);
+            $order = (int) $oStmt->fetchColumn();
+            $ins = $pdo->prepare('INSERT INTO listing_images (listing_id, image_url, display_order, created_at) VALUES (:l, :u, :o, :c)');
+            foreach ($urls as $url) {
+                $ins->execute(['l' => $id, 'u' => $url, 'o' => $order++, 'c' => $now]);
+            }
+        }
+    }
 
     echo json_encode([
         'success' => true,

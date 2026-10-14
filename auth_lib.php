@@ -136,6 +136,164 @@ function ccw_db(): PDO {
     $pdo->exec('CREATE INDEX IF NOT EXISTS idx_listings_category ON listings(category);');
     $pdo->exec('CREATE INDEX IF NOT EXISTS idx_listing_images_listing_id ON listing_images(listing_id);');
 
+    // --- Profile & social feature migrations (idempotent) ---
+    foreach (['display_name', 'link', 'avatar_path'] as $col) {
+        try { $pdo->exec("ALTER TABLE users ADD COLUMN $col TEXT NOT NULL DEFAULT ''"); } catch (Throwable $e) {}
+    }
+    try { $pdo->exec("ALTER TABLE listings ADD COLUMN archived INTEGER NOT NULL DEFAULT 0"); } catch (Throwable $e) {}
+    try { $pdo->exec("ALTER TABLE listings ADD COLUMN sold_at TEXT"); } catch (Throwable $e) {}
+
+    $pdo->exec('CREATE TABLE IF NOT EXISTS follows (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        follower_id INTEGER NOT NULL,
+        followee_id INTEGER NOT NULL,
+        created_at TEXT NOT NULL,
+        UNIQUE (follower_id, followee_id),
+        FOREIGN KEY (follower_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (followee_id) REFERENCES users(id) ON DELETE CASCADE
+    );');
+
+    $pdo->exec('CREATE TABLE IF NOT EXISTS saves (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        listing_id INTEGER NOT NULL,
+        created_at TEXT NOT NULL,
+        UNIQUE (user_id, listing_id),
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE CASCADE
+    );');
+
+    $pdo->exec('CREATE TABLE IF NOT EXISTS collections (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        name TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    );');
+
+    $pdo->exec('CREATE TABLE IF NOT EXISTS collection_items (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        collection_id INTEGER NOT NULL,
+        listing_id INTEGER NOT NULL,
+        created_at TEXT NOT NULL,
+        UNIQUE (collection_id, listing_id),
+        FOREIGN KEY (collection_id) REFERENCES collections(id) ON DELETE CASCADE,
+        FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE CASCADE
+    );');
+
+    $pdo->exec('CREATE TABLE IF NOT EXISTS notes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        listing_id INTEGER,
+        body TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        expires_at INTEGER NOT NULL,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE CASCADE
+    );');
+
+    // Migrate legacy notes table where listing_id was NOT NULL (profile notes need NULL).
+    // SQLite cannot relax a column constraint in place, so rebuild the table once.
+    $notesCols = $pdo->query("PRAGMA table_info(notes)")->fetchAll();
+    foreach ($notesCols as $col) {
+        if ($col['name'] === 'listing_id' && (int) $col['notnull'] === 1) {
+            $pdo->exec('BEGIN');
+            $pdo->exec('CREATE TABLE IF NOT EXISTS notes_new (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                listing_id INTEGER,
+                body TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                expires_at INTEGER NOT NULL,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE CASCADE
+            );');
+            $pdo->exec('INSERT INTO notes_new (id, user_id, listing_id, body, created_at, expires_at) SELECT id, user_id, listing_id, body, created_at, expires_at FROM notes');
+            $pdo->exec('DROP TABLE notes');
+            $pdo->exec('ALTER TABLE notes_new RENAME TO notes');
+            $pdo->exec('COMMIT');
+            break;
+        }
+    }
+
+    $pdo->exec('CREATE TABLE IF NOT EXISTS reviews (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        reviewer_id INTEGER NOT NULL,
+        reviewee_id INTEGER NOT NULL,
+        listing_id INTEGER NOT NULL,
+        rating INTEGER NOT NULL CHECK (rating BETWEEN 1 AND 5),
+        comment TEXT NOT NULL DEFAULT "",
+        created_at TEXT NOT NULL,
+        UNIQUE (reviewer_id, listing_id),
+        FOREIGN KEY (reviewer_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (reviewee_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE CASCADE
+    );');
+
+    $pdo->exec('CREATE TABLE IF NOT EXISTS conversations (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        listing_id INTEGER,
+        buyer_id INTEGER NOT NULL,
+        seller_id INTEGER NOT NULL,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE SET NULL,
+        FOREIGN KEY (buyer_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (seller_id) REFERENCES users(id) ON DELETE CASCADE
+    );');
+
+    $pdo->exec('CREATE TABLE IF NOT EXISTS messages (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        conversation_id INTEGER NOT NULL,
+        sender_id INTEGER NOT NULL,
+        body TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        read_at TEXT,
+        FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE,
+        FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE
+    );');
+
+    $pdo->exec('CREATE TABLE IF NOT EXISTS notifications (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        type TEXT NOT NULL,
+        actor_id INTEGER,
+        entity_id INTEGER,
+        body TEXT NOT NULL DEFAULT "",
+        read_at TEXT,
+        created_at TEXT NOT NULL,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (actor_id) REFERENCES users(id) ON DELETE SET NULL
+    );');
+
+    $pdo->exec('CREATE TABLE IF NOT EXISTS rate_limits (
+        bucket TEXT NOT NULL,
+        rate_key TEXT NOT NULL,
+        count INTEGER NOT NULL DEFAULT 0,
+        window_start INTEGER NOT NULL,
+        PRIMARY KEY (bucket, rate_key)
+    );');
+
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_follows_follower ON follows(follower_id);');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_follows_followee ON follows(followee_id);');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_saves_user ON saves(user_id);');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_saves_listing ON saves(listing_id);');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_collections_user ON collections(user_id);');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_collection_items_collection ON collection_items(collection_id);');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_collection_items_listing ON collection_items(listing_id);');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_notes_user ON notes(user_id);');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_notes_listing ON notes(listing_id);');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_notes_expires ON notes(expires_at);');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_reviews_reviewee ON reviews(reviewee_id);');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_reviews_reviewer ON reviews(reviewer_id);');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_reviews_listing ON reviews(listing_id);');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_conversations_buyer ON conversations(buyer_id);');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_conversations_seller ON conversations(seller_id);');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_conversations_listing ON conversations(listing_id);');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_messages_conversation ON messages(conversation_id);');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_messages_sender ON messages(sender_id);');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id);');
+
     ccw_migrate_legacy_data($pdo);
     return $pdo;
 }
@@ -672,7 +830,7 @@ function ccw_verify_token_and_get_user(?string $token): ?array {
         exit;
     }
 
-    $userStmt = $pdo->prepare('SELECT id FROM users WHERE email = :email');
+    $userStmt = $pdo->prepare('SELECT * FROM users WHERE email = :email');
     $userStmt->execute(['email' => $tokenRow['email']]);
     $user = $userStmt->fetch();
 
@@ -813,4 +971,60 @@ function ccw_reset_password_with_token(string $resetToken, string $newPassword):
         return ['success' => false, 'error' => 'Unable to reset password. Please try again.'];
     }
 }
+
+/**
+ * Resolve the avatar URL for a user row. Prefers the uploaded avatar_path
+ * (served via the controlled uploads endpoint) over the legacy base64 field.
+ */
+function ccw_avatar_url(array $user): string {
+    $path = trim((string) ($user['avatar_path'] ?? ''));
+    if ($path !== '') return '/api/uploads/serve.php?f=' . rawurlencode($path);
+    return (string) ($user['avatar'] ?? '');
+}
+
+/**
+ * Public profile shape shared by profile, follow, review, and search endpoints.
+ */
+function ccw_profile_shape(array $user): array {
+    return [
+        'username' => $user['username'] ?? '',
+        'display_name' => $user['display_name'] ?? '',
+        'real_name' => $user['real_name'] ?? '',
+        'bio' => $user['bio'] ?? '',
+        'link' => $user['link'] ?? '',
+        'campus' => $user['campus'] ?? '',
+        'avatar_url' => ccw_avatar_url($user),
+        'created_at' => $user['created_at'] ?? '',
+    ];
+}
+
+/**
+ * Insert a notification. Silently no-ops for the JSON store or self-notifications.
+ */
+function ccw_notify(?int $userId, string $type, ?int $actorId, ?int $entityId, string $body): void {
+    if (!$userId || ccw_use_json_auth_store()) return;
+    if ($actorId !== null && $actorId === $userId) return;
+    try {
+        $pdo = ccw_db();
+        $stmt = $pdo->prepare('INSERT INTO notifications (user_id, type, actor_id, entity_id, body, read_at, created_at) VALUES (:user_id, :type, :actor_id, :entity_id, :body, NULL, :created_at)');
+        $stmt->execute([
+            'user_id' => $userId,
+            'type' => $type,
+            'actor_id' => $actorId,
+            'entity_id' => $entityId,
+            'body' => $body,
+            'created_at' => (new DateTime())->format('Y-m-d H:i:s'),
+        ]);
+    } catch (Throwable $e) {}
+}
+
+/**
+ * Shared pagination: ?page= & ?limit= with the limit capped at 50.
+ */
+function ccw_pagination(): array {
+    $page = max(1, (int) ($_GET['page'] ?? 1));
+    $limit = (int) ($_GET['limit'] ?? 20);
+    if ($limit < 1) $limit = 20;
+    if ($limit > 50) $limit = 50;
+    return [$page, $limit, ($page - 1) * $limit];
 }

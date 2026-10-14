@@ -1,20 +1,11 @@
+// Messages — wired to /api/messages/ (conversations, thread polling, send, mark-read, unread badge).
 document.addEventListener('DOMContentLoaded', function () {
   var rawUser = sessionStorage.getItem('cc-user');
-  if (!rawUser) {
-    window.location.href = 'login.html';
-    return;
-  }
+  if (!rawUser) { window.location.href = 'login.html'; return; }
   var user;
-  try { user = JSON.parse(rawUser); } catch (e) {
-    window.location.href = 'login.html';
-    return;
-  }
-
-  var username = user.username || 'Student';
-  var storageKey = 'cc-conversations-' + (user.email || username).toLowerCase();
-  var activeId = new URLSearchParams(window.location.search).get('conversation') || null;
-  var filterUnreadOnly = false;
-  var searchQuery = '';
+  try { user = JSON.parse(rawUser); } catch (e) { window.location.href = 'login.html'; return; }
+  var token = sessionStorage.getItem('cc-auth-token') || '';
+  if (!token) { window.location.href = 'login.html'; return; }
 
   var els = {
     list: document.getElementById('conversationList'),
@@ -33,399 +24,373 @@ document.addEventListener('DOMContentLoaded', function () {
     backBtn: document.getElementById('chatBackBtn'),
     filterAll: document.getElementById('filterAll'),
     filterUnread: document.getElementById('filterUnread'),
-    layout: document.getElementById('messagesLayout')
+    layout: document.getElementById('messagesLayout'),
+    charCount: document.getElementById('chatCharCount'),
+    newBtn: document.getElementById('newConversationBtn'),
+    deleteBtn: document.getElementById('chatDeleteBtn')
   };
 
-  function escapeHtml(v) {
-    return String(v).replace(/[&<>'"]/g, function (c) {
-      return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[c];
+  var conversations = [];
+  var activeId = parseInt(new URLSearchParams(window.location.search).get('conversation'), 10) || null;
+  var composeUser = (new URLSearchParams(window.location.search).get('u') || '').trim() || null;
+  var filterUnreadOnly = false;
+  var searchQuery = '';
+  var pollTimer = null;
+  var lastMessageId = 0;
+  var sending = false;
+
+  function api(path, options) {
+    options = options || {};
+    options.headers = Object.assign({ 'Authorization': 'Bearer ' + token }, options.headers || {});
+    if (options.body && typeof options.body === 'object' && !(options.body instanceof FormData)) {
+      options.headers['Content-Type'] = 'application/json';
+      options.body = JSON.stringify(options.body);
+    }
+    return fetch(path, options).then(function (r) {
+      return r.json().catch(function () { return { success: false, error: 'Unexpected response.' }; })
+        .then(function (data) {
+          if (r.status === 401) {
+            sessionStorage.removeItem('cc-auth-token');
+            sessionStorage.removeItem('cc-user');
+            window.location.href = 'login.html';
+            throw new Error('unauthorized');
+          }
+          if (!data.success) throw new Error(data.error || 'Request failed.');
+          return data;
+        });
     });
   }
 
-  function formatRelative(at) {
-    if (!at) return 'now';
-    var diff = Date.now() - at;
+  function setText(el, value) { if (el) el.textContent = value == null ? '' : String(value); }
+
+  function formatRelative(iso) {
+    if (!iso) return '';
+    var at = new Date(String(iso).replace(' ', 'T'));
+    if (isNaN(at)) return '';
+    var diff = Date.now() - at.getTime();
     if (diff < 60000) return 'now';
     if (diff < 3600000) return Math.floor(diff / 60000) + 'm';
     if (diff < 86400000) return Math.floor(diff / 3600000) + 'h';
     if (diff < 604800000) return Math.floor(diff / 86400000) + 'd';
-    return new Date(at).toLocaleDateString();
+    return at.toLocaleDateString();
   }
 
-  function formatBubbleTime(at) {
-    try {
-      return new Date(at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    } catch (e) { return ''; }
+  function formatBubbleTime(iso) {
+    var at = new Date(String(iso).replace(' ', 'T'));
+    if (isNaN(at)) return '';
+    return at.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   }
 
-  function loadConversations() {
-    try {
-      var stored = JSON.parse(localStorage.getItem(storageKey) || 'null');
-      if (Array.isArray(stored) && stored.length > 0) {
-        // migrate: ensure fields exist
-        return stored.map(function (c) {
-          c.messages = (c.messages || []).map(function (m) {
-            if (typeof m.at !== 'number') m.at = Date.now() - 600000;
-            return m;
-          });
-          if (typeof c.lastAt !== 'number') {
-            var last = c.messages[c.messages.length - 1];
-            c.lastAt = last ? last.at : Date.now();
-          }
-          if (!c.time) c.time = formatRelative(c.lastAt);
-          return c;
-        }).sort(function (a, b) { return (b.lastAt || 0) - (a.lastAt || 0); });
-      }
-    } catch (e) {}
-    var now = Date.now();
-    var seeded = [
-      {
-        id: 'alex-tutoring',
-        name: 'Alex M.',
-        initials: 'AM',
-        avatar: 'avatar-navy',
-        listing: 'Calc II tutoring · K50/hr',
-        time: '12m',
-        lastAt: now - 12 * 60000,
-        unread: true,
-        messages: [
-          { text: 'Hey! Is Tuesday at 17:00 at the library still good for Calc II?', mine: false, at: now - 13 * 60000 },
-          { text: 'I can bring past papers and we can focus on integration techniques.', mine: false, at: now - 12 * 60000 }
-        ]
-      },
-      {
-        id: 'tendai-fridge',
-        name: 'Tendai N.',
-        initials: 'TN',
-        avatar: 'avatar-orange',
-        listing: 'Mini fridge · K450',
-        time: '34m',
-        lastAt: now - 34 * 60000,
-        unread: true,
-        messages: [
-          { text: 'Hi, is the mini fridge still available for pickup near Block C?', mine: false, at: now - 35 * 60000 },
-          { text: 'Yes — clean, quiet, barely used. Can do tomorrow afternoon if that works.', mine: false, at: now - 34 * 60000 }
-        ]
-      },
-      {
-        id: 'sarah-creative',
-        name: 'Sarah K.',
-        initials: 'SK',
-        avatar: 'avatar-green',
-        listing: 'Logo design · From K120',
-        time: '2h',
-        lastAt: now - 7200000,
-        unread: false,
-        messages: [
-          { text: 'Love your club logo brief — I can deliver a first draft in 24h.', mine: false, at: now - 7300000 },
-          { text: 'Perfect, sending the colour palette now!', mine: true, at: now - 7200000 }
-        ]
-      }
-    ];
-    localStorage.setItem(storageKey, JSON.stringify(seeded));
-    return seeded;
+  function initialsFor(name) {
+    return String(name || '?').trim().split(/\s+/).map(function (p) { return p[0]; }).join('').slice(0, 2).toUpperCase() || '?';
   }
 
-  var conversations = loadConversations();
-
-  function save() {
-    // update derived time before save
-    conversations.forEach(function (c) { c.time = formatRelative(c.lastAt); });
-    conversations.sort(function (a, b) { return (b.lastAt || 0) - (a.lastAt || 0); });
-    localStorage.setItem(storageKey, JSON.stringify(conversations));
+  function avatarClassFor(id) {
+    var classes = ['avatar-navy', 'avatar-orange', 'avatar-green'];
+    return classes[Math.abs(Number(id) || 0) % classes.length];
   }
 
-  function filteredConversations() {
-    return conversations.filter(function (c) {
-      if (filterUnreadOnly && !c.unread) return false;
-      if (!searchQuery) return true;
-      var q = searchQuery.toLowerCase();
-      return c.name.toLowerCase().indexOf(q) !== -1 ||
-        c.listing.toLowerCase().indexOf(q) !== -1 ||
-        c.messages.some(function (m) { return m.text.toLowerCase().indexOf(q) !== -1; });
-    });
-  }
-
-  function renderList() {
-    var filtered = filteredConversations();
-    var unreadCount = conversations.filter(function (c) { return c.unread; }).length;
-    els.count.textContent = unreadCount;
-    els.count.hidden = false;
-    if (unreadCount === 0) {
-      els.count.classList.add('is-zero');
+  function setAvatar(el, url, name, id) {
+    if (!el) return;
+    el.textContent = '';
+    el.style.backgroundImage = '';
+    el.className = 'conversation-avatar ' + avatarClassFor(id);
+    if (url) {
+      el.style.backgroundImage = 'url("' + String(url).replace(/["\\]/g, '') + '")';
+      el.style.backgroundSize = 'cover';
+      el.style.backgroundPosition = 'center';
     } else {
-      els.count.classList.remove('is-zero');
+      el.textContent = initialsFor(name);
     }
-    if (els.filterUnread) {
-      els.filterUnread.textContent = 'Unread' + (unreadCount ? ' · ' + unreadCount : '');
-    }
+  }
 
-    if (conversations.length === 0) {
-      els.list.innerHTML = '';
-      els.conversationEmpty.hidden = false;
-      els.noResults.hidden = true;
-      return;
-    }
-    els.conversationEmpty.hidden = true;
+  function updateUnreadBadge() {
+    var unread = conversations.reduce(function (n, c) { return n + (Number(c.unread) > 0 ? 1 : 0); }, 0);
+    setText(els.count, String(unread));
+    document.dispatchEvent(new CustomEvent('cc:unread-messages', { detail: { count: unread } }));
+  }
 
-    if (filtered.length === 0) {
-      els.list.innerHTML = '';
-      els.noResults.hidden = false;
-      return;
-    }
-    els.noResults.hidden = true;
-
-    els.list.innerHTML = filtered.map(function (c) {
-      var latest = c.messages[c.messages.length - 1];
-      var preview = latest ? latest.text : 'Start a conversation';
-      return '<button class="conversation-row' + (c.id === activeId ? ' is-active' : '') + (c.unread ? ' is-unread' : '') + '" type="button" data-conversation-id="' + escapeHtml(c.id) + '">'
-        + '<span class="conversation-avatar ' + escapeHtml(c.avatar) + '">' + escapeHtml(c.initials) + '</span>'
-        + '<span class="conversation-copy"><span class="conversation-copy-top"><strong>' + escapeHtml(c.name) + '</strong><time>' + escapeHtml(formatRelative(c.lastAt)) + '</time></span>'
-        + '<small class="conversation-listing">' + escapeHtml(c.listing) + '</small>'
-        + '<small class="conversation-preview' + (c.unread ? ' is-unread' : '') + '">' + escapeHtml(preview) + '</small></span>'
-        + (c.unread ? '<span class="unread-dot" aria-label="Unread"></span>' : '<span class="read-dot" aria-hidden="true"></span>')
-        + '</button>';
-    }).join('');
-
-    els.list.querySelectorAll('[data-conversation-id]').forEach(function (btn) {
-      btn.addEventListener('click', function () { openConversation(btn.dataset.conversationId, true); });
+  function visibleConversations() {
+    var q = searchQuery.trim().toLowerCase();
+    return conversations.filter(function (c) {
+      if (filterUnreadOnly && !(Number(c.unread) > 0)) return false;
+      if (!q) return true;
+      var hay = [c.other_username, c.other_display_name, c.listing_title, c.last_message].join(' ').toLowerCase();
+      return hay.indexOf(q) !== -1;
     });
   }
 
-  function renderMessages(conversation) {
-    if (!conversation.messages.length) {
-      els.chatMessages.innerHTML = '<div class="chat-day-separator"><span>New conversation</span></div><div class="chat-system"><p>Say hi to ' + escapeHtml(conversation.name) + ' about <strong>' + escapeHtml(conversation.listing) + '</strong>.</p></div>';
-      return;
-    }
-    var html = '<div class="chat-day-separator"><span>Today</span></div>';
-    conversation.messages.forEach(function (m) {
-      var mine = !!m.mine;
-      html += '<div class="chat-row' + (mine ? ' is-mine-row' : '') + '">'
-        + (mine ? '' : '<span class="conversation-avatar ' + escapeHtml(conversation.avatar) + ' chat-row-avatar">' + escapeHtml(conversation.initials) + '</span>')
-        + '<div class="chat-bubble' + (mine ? ' is-mine' : '') + '"><p>' + escapeHtml(m.text) + '</p><time>' + escapeHtml(formatBubbleTime(m.at)) + '</time></div>'
-        + '</div>';
+  function renderConversationList() {
+    var items = visibleConversations();
+    els.list.textContent = '';
+    items.forEach(function (c) {
+      var row = document.createElement('button');
+      row.type = 'button';
+      row.className = 'conversation-row' + (c.id === activeId ? ' is-active' : '');
+      row.setAttribute('role', 'listitem');
+
+      var avatar = document.createElement('span');
+      avatar.className = 'conversation-avatar ' + avatarClassFor(c.other_id);
+      if (c.other_avatar_url) {
+        avatar.style.backgroundImage = 'url("' + String(c.other_avatar_url).replace(/["\\]/g, '') + '")';
+        avatar.style.backgroundSize = 'cover';
+        avatar.style.backgroundPosition = 'center';
+      } else {
+        avatar.textContent = initialsFor(c.other_display_name || c.other_username);
+      }
+
+      var copy = document.createElement('span');
+      copy.className = 'conversation-copy';
+      var name = document.createElement('strong');
+      name.textContent = c.other_display_name || c.other_username || 'Student';
+      var preview = document.createElement('small');
+      preview.textContent = c.last_message || 'Start a conversation';
+      copy.appendChild(name);
+      copy.appendChild(preview);
+
+      var time = document.createElement('time');
+      time.textContent = formatRelative(c.updated_at);
+
+      row.appendChild(avatar);
+      row.appendChild(copy);
+      row.appendChild(time);
+      if (Number(c.unread) > 0) {
+        var dot = document.createElement('span');
+        dot.className = 'unread-dot';
+        row.appendChild(dot);
+      }
+      row.addEventListener('click', function () { openConversation(c.id); });
+      els.list.appendChild(row);
     });
-    els.chatMessages.innerHTML = html;
+
+    if (els.conversationEmpty) els.conversationEmpty.hidden = conversations.length > 0;
+    if (els.noResults) els.noResults.hidden = !(conversations.length > 0 && items.length === 0);
+    updateUnreadBadge();
+  }
+
+  function renderMessages(messages, append) {
+    if (!append) els.chatMessages.textContent = '';
+    messages.forEach(function (m) {
+      var bubble = document.createElement('div');
+      var mine = m.is_mine === true ||
+        (m.sender_username && String(m.sender_username).toLowerCase() === String(user.username || '').toLowerCase());
+      bubble.className = 'chat-bubble' + (mine ? ' is-mine' : '');
+      bubble.textContent = m.body;
+      var stamp = formatBubbleTime(m.created_at);
+      if (stamp) {
+        var time = document.createElement('small');
+        time.textContent = stamp;
+        bubble.appendChild(time);
+      }
+      els.chatMessages.appendChild(bubble);
+      lastMessageId = Math.max(lastMessageId, Number(m.id) || 0);
+    });
     els.chatMessages.scrollTop = els.chatMessages.scrollHeight;
   }
 
-  function openConversation(id, pushUrl) {
-    var conv = conversations.find(function (c) { return c.id === id; });
-    if (!conv) return;
+  function activeConversation() {
+    return conversations.find(function (c) { return c.id === activeId; }) || null;
+  }
+
+  function openConversation(id) {
+    var c = conversations.find(function (item) { return item.id === id; });
+    if (!c) return;
     activeId = id;
-    conv.unread = false;
-    save();
-    els.chatName.textContent = conv.name;
-    els.chatListing.textContent = conv.listing;
-    els.chatAvatar.textContent = conv.initials;
-    els.chatAvatar.className = 'conversation-avatar ' + conv.avatar;
-    renderMessages(conv);
+    lastMessageId = 0;
+    setText(els.chatName, c.other_display_name || c.other_username || 'Conversation');
+    setText(els.chatListing, c.listing_title || 'Campus conversation');
+    setAvatar(els.chatAvatar, c.other_avatar_url, c.other_display_name || c.other_username, c.other_id);
     els.chatPanel.hidden = false;
-    els.chatEmpty.hidden = true;
-    els.layout.classList.add('has-active');
-    renderList();
-    els.chatInput.focus();
-    if (pushUrl) {
-      var url = new URL(window.location.href);
-      url.searchParams.set('conversation', id);
-      window.history.replaceState({}, '', url.toString());
+    if (els.chatEmpty) els.chatEmpty.hidden = true;
+    if (els.layout) els.layout.classList.add('chat-open');
+
+    api('api/messages/thread.php?conversation_id=' + encodeURIComponent(id))
+      .then(function (data) {
+        renderMessages(data.messages || [], false);
+        c.unread = 0;
+        renderConversationList();
+        return api('api/messages/mark-read.php', { method: 'POST', body: { conversation_id: id } }).catch(function () {});
+      })
+      .catch(function (err) { toast(err.message); });
+  }
+
+  function pollThread() {
+    if (!activeId) return;
+    api('api/messages/thread.php?conversation_id=' + encodeURIComponent(activeId) + '&after_id=' + lastMessageId)
+      .then(function (data) {
+        if (data.messages && data.messages.length) {
+          renderMessages(data.messages, true);
+          var c = activeConversation();
+          if (c) {
+            c.last_message = data.messages[data.messages.length - 1].body;
+            c.updated_at = data.messages[data.messages.length - 1].created_at;
+          }
+          api('api/messages/mark-read.php', { method: 'POST', body: { conversation_id: activeId } }).catch(function () {});
+          renderConversationList();
+        }
+      })
+      .catch(function () {});
+  }
+
+  function loadConversations() {
+    return api('api/messages/conversations.php')
+      .then(function (data) {
+        conversations = (data.conversations || []).map(function (c) {
+          c.id = Number(c.id);
+          return c;
+        });
+        renderConversationList();
+        if (activeId && activeConversation()) openConversation(activeId);
+      })
+      .catch(function (err) { toast(err.message); });
+  }
+
+  function toast(message) {
+    var el = document.getElementById('cc-toast');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'cc-toast';
+      el.setAttribute('role', 'status');
+      document.body.appendChild(el);
     }
+    el.textContent = message;
+    el.classList.add('is-visible');
+    clearTimeout(toast._t);
+    toast._t = setTimeout(function () { el.classList.remove('is-visible'); }, 3200);
   }
 
-  function closeConversationOnMobile() {
-    if (window.innerWidth > 600) return;
-    els.chatPanel.hidden = true;
-    els.chatEmpty.hidden = false;
-    els.layout.classList.remove('has-active');
-    activeId = null;
-    var url = new URL(window.location.href);
-    url.searchParams.delete('conversation');
-    window.history.replaceState({}, '', url.toString());
-    renderList();
-  }
-
-  var autoReplies = {
-    'Calc II tutoring': [
-      'Great — Tuesday 17:00 works. Meet at the library main desk?',
-      'I can share past exam papers as well. What topics feel trickiest?'
-    ],
-    'Mini fridge': [
-      'Yes still available! Are you on Main or Great East? We can arrange pickup after 15:00.',
-      'Happy to hold it until tomorrow if you need.'
-    ],
-    'default': [
-      'Thanks for reaching out! When suits you to meet on campus?',
-      'Happy to help — let me know what you had in mind.',
-      'Got it! I can meet in a public spot near campus.'
-    ]
-  };
-
-  function pickReply(listing) {
-    for (var key in autoReplies) {
-      if (listing.indexOf(key) !== -1 && key !== 'default') return autoReplies[key][Math.floor(Math.random() * autoReplies[key].length)];
-    }
-    var d = autoReplies['default'];
-    return d[Math.floor(Math.random() * d.length)];
-  }
-
-  // Events
-  if (els.search) {
-    els.search.addEventListener('input', function () {
-      searchQuery = els.search.value.trim();
-      renderList();
+  // --- Events ---
+  if (els.chatForm) {
+    els.chatForm.addEventListener('submit', function (e) {
+      e.preventDefault();
+      if (sending) return;
+      var text = els.chatInput.value.trim();
+      if (!text) return;
+      // Compose mode: first message to a username creates the conversation.
+      if (!activeId && composeUser) {
+        sending = true;
+        api('api/messages/send.php', { method: 'POST', body: { recipient: composeUser, body: text } })
+          .then(function (data) {
+            els.chatInput.value = '';
+            if (els.charCount) els.charCount.textContent = '0/500';
+            var cid = data.conversation_id;
+            composeUser = null;
+            loadConversations().then(function () { if (cid) openConversation(cid); });
+          })
+          .catch(function (err) { toast(err.message); })
+          .finally(function () { sending = false; });
+        return;
+      }
+      if (!activeId) return;
+      sending = true;
+      api('api/messages/send.php', { method: 'POST', body: { conversation_id: activeId, body: text } })
+        .then(function (data) {
+          els.chatInput.value = '';
+          if (els.charCount) els.charCount.textContent = '0/500';
+          if (data.message) {
+            data.message.is_mine = true;
+            renderMessages([data.message], true);
+            var c = activeConversation();
+            if (c) { c.last_message = data.message.body; c.updated_at = data.message.created_at; }
+            renderConversationList();
+          }
+        })
+        .catch(function (err) { toast(err.message); })
+        .finally(function () { sending = false; });
     });
   }
+
+  if (els.chatInput && els.charCount) {
+    els.chatInput.addEventListener('input', function () {
+      els.charCount.textContent = els.chatInput.value.length + '/500';
+    });
+  }
+
+  if (els.search) {
+    els.search.addEventListener('input', function () {
+      searchQuery = els.search.value;
+      renderConversationList();
+    });
+  }
+
   if (els.filterAll && els.filterUnread) {
     els.filterAll.addEventListener('click', function () {
       filterUnreadOnly = false;
       els.filterAll.classList.add('is-active');
+      els.filterAll.setAttribute('aria-selected', 'true');
       els.filterUnread.classList.remove('is-active');
-      renderList();
+      els.filterUnread.setAttribute('aria-selected', 'false');
+      renderConversationList();
     });
     els.filterUnread.addEventListener('click', function () {
       filterUnreadOnly = true;
       els.filterUnread.classList.add('is-active');
+      els.filterUnread.setAttribute('aria-selected', 'true');
       els.filterAll.classList.remove('is-active');
-      renderList();
+      els.filterAll.setAttribute('aria-selected', 'false');
+      renderConversationList();
     });
-  }
-  if (els.chatForm) {
-    els.chatForm.addEventListener('submit', function (e) {
-      e.preventDefault();
-      var text = els.chatInput.value.trim();
-      if (!text) return;
-      var conv = conversations.find(function (c) { return c.id === activeId; });
-      if (!conv) {
-        // no active conversation: create quick one
-        if (conversations.length === 0) return;
-        conv = conversations[0];
-        activeId = conv.id;
-      }
-      if (text.length > 500) text = text.slice(0, 500);
-      conv.messages.push({ text: text, mine: true, at: Date.now() });
-      conv.lastAt = Date.now();
-      conv.unread = false;
-      save();
-      els.chatInput.value = '';
-      updateCharCount();
-      renderMessages(conv);
-      renderList();
-      // simulate reply
-      var replyListing = conv.listing;
-      var replyText = pickReply(replyListing);
-      var typingId = 'typing-' + Date.now();
-      var typingEl = document.createElement('div');
-      typingEl.id = typingId;
-      typingEl.className = 'chat-typing';
-      typingEl.innerHTML = '<span class="conversation-avatar ' + escapeHtml(conv.avatar) + '">' + escapeHtml(conv.initials) + '</span><span class="typing-bubble"><i></i><i></i><i></i></span>';
-      els.chatMessages.appendChild(typingEl);
-      els.chatMessages.scrollTop = els.chatMessages.scrollHeight;
-      setTimeout(function () {
-        var t = document.getElementById(typingId);
-        if (t) t.remove();
-        conv.messages.push({ text: replyText, mine: false, at: Date.now() });
-        conv.lastAt = Date.now();
-        // if chat still open on this conversation, show immediately; if not, mark unread
-        var isStillActive = activeId === conv.id && !els.chatPanel.hidden;
-        if (!isStillActive) conv.unread = true;
-        save();
-        if (isStillActive) renderMessages(conv);
-        renderList();
-      }, 900 + Math.random() * 600);
-    });
-  }
-
-  function updateCharCount() {
-    var counter = document.getElementById('chatCharCount');
-    if (!counter) return;
-    var len = els.chatInput.value.length;
-    counter.textContent = len + '/500';
-    counter.classList.toggle('is-near-limit', len > 420);
-    counter.classList.toggle('is-over', len >= 500);
-  }
-  if (els.chatInput) {
-    els.chatInput.addEventListener('input', updateCharCount);
   }
 
   if (els.backBtn) {
-    els.backBtn.addEventListener('click', closeConversationOnMobile);
-  }
-
-  // delete conversation
-  var deleteBtn = document.getElementById('chatDeleteBtn');
-  if (deleteBtn) {
-    deleteBtn.addEventListener('click', function () {
-      var conv = conversations.find(function (c) { return c.id === activeId; });
-      if (!conv) return;
-      if (!window.confirm('Delete conversation with ' + conv.name + '?')) return;
-      conversations = conversations.filter(function (c) { return c.id !== activeId; });
-      save();
+    els.backBtn.addEventListener('click', function () {
       activeId = null;
       els.chatPanel.hidden = true;
-      els.chatEmpty.hidden = false;
-      els.layout.classList.remove('has-active');
-      var url = new URL(window.location.href);
-      url.searchParams.delete('conversation');
-      window.history.replaceState({}, '', url.toString());
-      renderList();
+      if (els.chatEmpty) els.chatEmpty.hidden = false;
+      if (els.layout) els.layout.classList.remove('chat-open');
+      renderConversationList();
     });
   }
 
-  // new message button
-  var newBtn = document.getElementById('newConversationBtn');
-  if (newBtn) {
-    newBtn.addEventListener('click', function () {
-      var name = window.prompt('Who do you want to message? (e.g. Alex M.)');
-      if (!name || !name.trim()) return;
-      name = name.trim();
-      var listing = window.prompt('About which listing?') || 'Campus listing';
-      var id = 'conv-' + Date.now();
-      var initials = name.split(' ').map(function (w) { return w[0]; }).join('').slice(0, 2).toUpperCase();
-      var avatars = ['avatar-navy', 'avatar-orange', 'avatar-green'];
-      var avatar = avatars[conversations.length % 3];
-      var conv = { id: id, name: name, initials: initials, avatar: avatar, listing: listing, time: 'now', lastAt: Date.now(), unread: false, messages: [] };
-      conversations.unshift(conv);
-      save();
-      renderList();
-      openConversation(id, true);
+  if (els.newBtn) {
+    els.newBtn.addEventListener('click', function () {
+      window.location.href = 'listings.html';
     });
   }
 
-  // browse link in empty
-  document.querySelectorAll('[data-browse-adverts]').forEach(function (btn) {
-    btn.addEventListener('click', function () { window.location.href = 'adverts.html'; });
+  if (els.deleteBtn) {
+    // No delete endpoint exists; use it to jump to the seller's profile instead.
+    els.deleteBtn.addEventListener('click', function () {
+      var c = activeConversation();
+      if (c && c.other_username) window.location.href = 'profile.html?u=' + encodeURIComponent(c.other_username);
+    });
+    els.deleteBtn.setAttribute('aria-label', 'View profile');
+  }
+
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden) { loadConversations(); pollThread(); }
   });
 
-  // initial render
-  renderList();
-  if (activeId) {
-    var exists = conversations.some(function (c) { return c.id === activeId; });
-    if (exists) openConversation(activeId, false);
-    else if (conversations.length) openConversation(conversations[0].id, false);
-  } else if (window.innerWidth > 600 && conversations.length) {
-    // auto-open first on desktop
-    // keep empty on load to preserve original behavior, but show first as hint? keep empty for now
-  }
-
-  // handle resize to reset mobile drawer
-  window.addEventListener('resize', function () {
-    if (window.innerWidth > 600) {
-      els.layout.classList.remove('has-active');
-    } else if (activeId) {
-      els.layout.classList.add('has-active');
+  // Initial load + polling (thread every 4s while open, list every 15s).
+  loadConversations().then(function () {
+    // Compose mode from profile pages (?u=username): reuse existing thread or open a blank composer.
+    if (composeUser) {
+      var existing = conversations.find(function (c) {
+        return String(c.other_username || '').toLowerCase() === composeUser.toLowerCase();
+      });
+      if (existing) { composeUser = null; openConversation(existing.id); }
+      else {
+        setText(els.chatName, '@' + composeUser);
+        setText(els.chatListing, 'New conversation');
+        setAvatar(els.chatAvatar, null, composeUser, 0);
+        els.chatMessages.textContent = '';
+        els.chatPanel.hidden = false;
+        if (els.chatEmpty) els.chatEmpty.hidden = true;
+        if (els.layout) els.layout.classList.add('chat-open');
+        if (els.chatInput) els.chatInput.focus();
+      }
     }
   });
+  pollTimer = setInterval(function () {
+    if (document.hidden) return;
+    pollThread();
+  }, 4000);
+  setInterval(function () {
+    if (document.hidden) return;
+    loadConversations();
+  }, 15000);
 
-  // logout
-  var logoutBtn = document.getElementById('logoutBtn');
-  if (logoutBtn) logoutBtn.addEventListener('click', function () {
-    fetch('logout.php', { method: 'POST' }).finally(function () {
-      sessionStorage.removeItem('cc-auth-token');
-      sessionStorage.removeItem('cc-user');
-      window.location.href = 'index.html';
-    });
+  document.querySelectorAll('[data-browse-adverts]').forEach(function (btn) {
+    btn.addEventListener('click', function () { window.location.href = 'listings.html'; });
   });
-
-  // update char count init
-  updateCharCount();
 });

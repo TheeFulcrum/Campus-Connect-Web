@@ -314,45 +314,55 @@
 
         async function loadListing() {
             try {
-                const response = await fetch('api/listings/view.php?id=' + listingId);
+                const response = await fetch('api/listings/view.php?id=' + encodeURIComponent(listingId));
                 const result = await response.json();
 
                 if (!result.success) {
-                    document.getElementById('container').innerHTML = '<div class="error">' + result.error + '</div>';
+                    document.getElementById('container').textContent = result.error || 'Unable to load this listing.';
                     return;
                 }
 
+                const esc = function (v) {
+                    return String(v == null ? '' : v).replace(/[&<>'"]/g, function (c) {
+                        return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[c];
+                    });
+                };
+
                 const listing = result.listing;
-                const imageUrl = listing.images && listing.images.length > 0 
-                    ? listing.images[0].image_url 
+                const imageUrl = listing.images && listing.images.length > 0 && /^\/api\/uploads\/serve\.php\?f=/.test(listing.images[0].image_url)
+                    ? listing.images[0].image_url
                     : 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400"%3E%3Crect fill="%23ddd" width="400" height="400"/%3E%3C/svg%3E';
-                
-                const priceStr = listing.price ? '$' + parseFloat(listing.price).toFixed(2) : 'Negotiable';
+
+                const priceStr = listing.price ? 'K' + parseFloat(listing.price).toFixed(2) : 'Negotiable';
+                const sellerName = listing.user_profile.real_name || listing.user_profile.username;
+                const sellerAvatar = listing.user_profile.avatar && /^(\/api\/uploads\/serve\.php\?f=|data:image\/)/.test(listing.user_profile.avatar)
+                    ? listing.user_profile.avatar
+                    : 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ccircle cx=%2250%22 cy=%2250%22 r=%2250%22 fill=%22%23ccc%22/%3E%3C/svg%3E';
 
                 const html = `
                     <div class="detail-main">
                         <div class="image-gallery">
-                            <img src="${imageUrl}" alt="${listing.title}">
+                            <img src="${esc(imageUrl)}" alt="${esc(listing.title)}">
                         </div>
                         <div class="listing-content">
                             <div class="listing-header">
-                                <div class="listing-title">${listing.title}</div>
+                                <div class="listing-title">${esc(listing.title)}</div>
                                 <div class="listing-meta">
-                                    <span>${listing.category}</span>
-                                    <span>${listing.campus}</span>
-                                    <span>${new Date(listing.created_at).toLocaleDateString()}</span>
+                                    <span>${esc(listing.category)}</span>
+                                    <span>${esc(listing.campus)}</span>
+                                    <span>${esc(new Date(listing.created_at).toLocaleDateString())}</span>
                                 </div>
                             </div>
-                            <div class="listing-price">${priceStr}</div>
-                            
+                            <div class="listing-price">${esc(priceStr)}</div>
+
                             <div class="detail-section">
                                 <h3>Description</h3>
-                                <p>${listing.description}</p>
+                                <p>${esc(listing.description)}</p>
                             </div>
 
                             <div class="detail-section">
                                 <h3>Seller</h3>
-                                <p>${listing.user_profile.real_name || listing.user_profile.username}</p>
+                                <p>${esc(sellerName)}</p>
                             </div>
                         </div>
                     </div>
@@ -360,30 +370,67 @@
                     <div class="sidebar">
                         <div class="seller-card">
                             <div class="seller-header">
-                                <img src="${listing.user_profile.avatar || 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ccircle cx=%2250%22 cy=%2250%22 r=%2250%22 fill=%22%23ccc%22/%3E%3C/svg%3E'}" alt="" class="seller-avatar">
+                                <img src="${esc(sellerAvatar)}" alt="" class="seller-avatar">
                                 <div class="seller-info">
-                                    <div class="seller-name">${listing.user_profile.real_name || 'User'}</div>
-                                    <div class="seller-username">@${listing.user_profile.username}</div>
+                                    <div class="seller-name">${esc(sellerName)}</div>
+                                    <div class="seller-username">@${esc(listing.user_profile.username)}</div>
                                 </div>
                             </div>
                             <div class="action-buttons">
-                                <button class="btn-message" onclick="sendMessage('${listing.user_id}', '${listing.title}')">Message Seller</button>
-                                <button class="btn-share">Share</button>
+                                <button class="btn-message" id="messageSellerBtn" type="button">Message Seller</button>
+                                <button class="btn-share" id="shareListingBtn" type="button">Share</button>
                             </div>
                         </div>
                     </div>
                 `;
 
                 document.getElementById('container').innerHTML = html;
+
+                document.getElementById('messageSellerBtn').addEventListener('click', function () {
+                    sendMessage(listing.id, listing.user_id);
+                });
+                document.getElementById('shareListingBtn').addEventListener('click', async function () {
+                    if (navigator.share) {
+                        try { await navigator.share({ title: listing.title, url: window.location.href }); } catch (e) {}
+                    } else if (navigator.clipboard) {
+                        await navigator.clipboard.writeText(window.location.href);
+                        this.textContent = 'Link copied';
+                    }
+                });
             } catch (error) {
-                document.getElementById('container').innerHTML = '<div class="error">Error loading listing: ' + error.message + '</div>';
+                document.getElementById('container').textContent = 'Error loading listing.';
             }
         }
 
-        function sendMessage(sellerId, listingTitle) {
-            // TODO: Implement messaging
-            alert('Messaging feature coming soon!');
+        // Start (or reuse) a conversation about this listing, then open Messages.
+        async function sendMessage(listingId, sellerId) {
+            const btn = document.getElementById('messageSellerBtn');
+            if (btn) { btn.disabled = true; btn.textContent = 'Opening chat...'; }
+            try {
+                const response = await fetch('api/messages/send.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token
+                    },
+                    body: JSON.stringify({
+                        listing_id: Number(listingId),
+                        body: 'Hi! Is this still available?'
+                    })
+                });
+                const result = await response.json();
+                if (response.ok && result.success && result.conversation_id) {
+                    window.location.href = 'messages.html?conversation=' + encodeURIComponent(result.conversation_id);
+                } else {
+                    alert(result.error || 'Could not start the conversation.');
+                    if (btn) { btn.disabled = false; btn.textContent = 'Message Seller'; }
+                }
+            } catch (error) {
+                alert('Could not start the conversation. Please try again.');
+                if (btn) { btn.disabled = false; btn.textContent = 'Message Seller'; }
+            }
         }
     </script>
+    <script src="shared-header.js"></script>
 </body>
 </html>

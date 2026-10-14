@@ -1,6 +1,7 @@
 <?php
 // login.php — validates credentials against users.json and starts a server session.
 require __DIR__ . '/auth_lib.php';
+require_once __DIR__ . '/api/_rate_limit.php';
 
 header('Content-Type: application/json');
 session_set_cookie_params([
@@ -30,6 +31,8 @@ if (str_contains($identifier, '@') && !ccw_valid_email($identifier)) {
     echo json_encode(['success' => false, 'error' => 'Use your 10-digit ID@edenuniversity.education email.']);
     exit;
 }
+
+ccw_rate_limit_or_fail('login', ccw_client_ip(), 10, 300);
 
 $result = ccw_authenticate_user($identifier, $password);
 if (isset($result['error'])) {

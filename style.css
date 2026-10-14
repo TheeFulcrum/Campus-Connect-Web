@@ -640,3 +640,270 @@ img{max-width:100%;display:block;}
   .insta-new-row{width:88px;padding-left:16px;}
   .insta-new{width:54px;height:54px;}
 }
+
+/* ==========================================================
+   Profile experience + shared app chrome (sidebar, panels,
+   chat drawer, toasts). Layout/spacing/behavior ONLY —
+   every color/font/shadow below reuses an existing token.
+   ========================================================== */
+
+/* Focus visibility (a11y) — reuses --accent */
+.cc-side-btn:focus-visible,
+.cc-top-icon:focus-visible,
+.cc-panel-close:focus-visible,
+.cc-msg-pill:focus-visible,
+.insta-tabs button:focus-visible,
+.cc-result-row:focus-visible,
+.collection-circle:focus-visible{
+  outline:2px solid var(--accent);outline-offset:2px;
+}
+
+/* ---------- Desktop left icon sidebar ---------- */
+.cc-sidebar{
+  position:fixed;top:0;left:0;bottom:0;z-index:35;
+  width:72px;display:flex;flex-direction:column;align-items:center;
+  gap:6px;padding:18px 0 calc(18px + env(safe-area-inset-bottom));
+  background:var(--surface);border-right:1px solid var(--border);
+  transition:var(--transition-theme);
+}
+.cc-side-btn{
+  position:relative;display:flex;align-items:center;justify-content:center;
+  width:48px;height:48px;border:0;border-radius:12px;
+  background:transparent;color:var(--text-muted);cursor:pointer;
+  transition:background .15s ease,color .15s ease;
+}
+.cc-side-btn:hover{background:var(--bg);color:var(--text);}
+.cc-side-btn.is-active{color:var(--primary);}
+.cc-side-btn svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;}
+/* tooltip */
+.cc-side-btn::after{
+  content:attr(data-tip);
+  position:absolute;left:calc(100% + 10px);top:50%;transform:translateY(-50%) translateX(-4px);
+  padding:6px 10px;border-radius:8px;background:var(--primary-dark);color:#fff;
+  font-size:0.72rem;font-weight:700;white-space:nowrap;
+  opacity:0;pointer-events:none;transition:opacity .15s ease,transform .15s ease;
+}
+.cc-side-btn:hover::after,.cc-side-btn:focus-visible::after{opacity:1;transform:translateY(-50%) translateX(0);}
+.cc-side-avatar{
+  display:flex;align-items:center;justify-content:center;
+  width:30px;height:30px;border-radius:50%;
+  background:var(--accent);color:#fff;font-size:0.6rem;font-weight:800;overflow:hidden;
+  background-size:cover;background-position:center;
+}
+.cc-side-badge{
+  position:absolute;top:6px;right:6px;min-width:17px;height:17px;
+  display:flex;align-items:center;justify-content:center;
+  padding:0 4px;border-radius:999px;background:var(--accent);color:#fff;
+  font-size:0.6rem;font-weight:800;
+}
+/* shift page content right of the sidebar on desktop */
+@media (min-width:1024px){
+  body.cc-has-sidebar .site-header,
+  body.cc-has-sidebar main,
+  body.cc-has-sidebar .marketplace-shell,
+  body.cc-has-sidebar .profile-page-shell{padding-left:72px;}
+  body.cc-has-sidebar .site-header{padding-left:0;margin-left:72px;}
+  body.cc-has-sidebar .bottom-nav{display:none;} /* sidebar replaces bottom nav on desktop */
+}
+@media (max-width:1023px){
+  .cc-sidebar{display:none;} /* sidebar only on desktop; mobile keeps bottom nav + top icons */
+}
+
+/* ---------- Mobile top-bar icons ---------- */
+.cc-top-icon{
+  position:relative;display:none;align-items:center;justify-content:center;
+  width:44px;height:44px;border:0;border-radius:50%;background:transparent;color:var(--text);cursor:pointer;
+}
+.cc-top-icon svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;}
+@media (max-width:767px){.cc-top-icon{display:flex;}}
+
+/* ---------- Slide-out panels (search / notifications) ---------- */
+.cc-panel{
+  position:fixed;top:0;bottom:0;left:72px;z-index:36;width:min(400px,100vw);
+  display:flex;flex-direction:column;background:var(--surface);
+  border-right:1px solid var(--border);
+  transform:translateX(-100%);transition:transform .28s cubic-bezier(.2,.9,.3,1);
+  box-shadow:0 24px 60px rgba(0,0,0,0.18);
+}
+.cc-panel.is-open{transform:translateX(0);}
+@media (max-width:1023px){.cc-panel{left:0;}}
+.cc-panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:20px 20px 14px;border-bottom:1px solid var(--border);}
+.cc-panel-head h2{font-size:1.3rem;letter-spacing:-0.02em;}
+.cc-panel-close{display:flex;align-items:center;justify-content:center;width:40px;height:40px;border:0;border-radius:50%;background:transparent;color:var(--text-muted);cursor:pointer;}
+.cc-panel-close svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;}
+.cc-panel-body{flex:1;overflow:auto;padding:14px;}
+.cc-panel-input{
+  width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:999px;
+  background:var(--bg);color:var(--text);font:inherit;font-size:0.9rem;margin-bottom:14px;
+}
+.cc-panel-input:focus{outline:2px solid var(--accent);}
+.cc-panel-label{color:var(--text-muted);font-size:0.8rem;padding:8px 4px;}
+.cc-recent-item{display:block;width:100%;text-align:left;padding:10px;border:0;border-radius:8px;background:transparent;color:var(--text);font:inherit;cursor:pointer;}
+.cc-recent-item:hover{background:var(--bg);}
+.cc-result-row{display:flex;align-items:center;gap:11px;padding:11px;border-radius:10px;color:var(--text);}
+.cc-result-row:hover{background:var(--bg);}
+.cc-result-row.is-unread{background:rgba(255,107,69,0.08);}
+.cc-result-copy{display:flex;flex-direction:column;min-width:0;flex:1;}
+.cc-result-copy strong{font-size:0.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cc-result-copy small{color:var(--text-muted);font-size:0.76rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cc-scrim{position:fixed;inset:0;z-index:34;background:rgba(15,22,32,0.4);}
+
+/* ---------- Menu popover ---------- */
+.cc-menu-pop{
+  position:fixed;z-index:60;min-width:200px;padding:6px;
+  background:var(--surface);border:1px solid var(--border);border-radius:12px;
+  box-shadow:0 14px 30px rgba(15,22,32,0.18);
+}
+.cc-menu-pop a,.cc-menu-pop button{display:block;width:100%;padding:11px 12px;border:0;border-radius:8px;background:transparent;color:var(--text);font:inherit;font-size:0.86rem;font-weight:600;text-align:left;cursor:pointer;}
+.cc-menu-pop a:hover,.cc-menu-pop button:hover{background:var(--bg);color:var(--accent);}
+
+/* ---------- Floating messages pill + chat drawer ---------- */
+.cc-msg-pill{
+  position:fixed;right:22px;bottom:calc(22px + env(safe-area-inset-bottom));z-index:32;
+  display:none;align-items:center;justify-content:center;width:56px;height:56px;
+  border:0;border-radius:50%;background:var(--primary);color:#fff;cursor:pointer;
+  box-shadow:0 10px 24px rgba(24,39,71,0.3);
+}
+.cc-msg-pill svg{width:26px;height:26px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;}
+@media (min-width:1024px){.cc-msg-pill{display:flex;}}
+@media (max-width:1023px){.cc-msg-pill{display:none!important;}}
+.cc-chat-drawer{
+  position:fixed;right:0;top:0;bottom:0;z-index:37;width:min(360px,100vw);
+  display:flex;flex-direction:column;background:var(--surface);
+  border-left:1px solid var(--border);box-shadow:-16px 0 40px rgba(0,0,0,0.18);
+}
+.cc-drawer-body{flex:1;overflow:auto;padding:12px;}
+
+/* ---------- Toasts ---------- */
+#ccToastHost{position:fixed;bottom:calc(20px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);z-index:100;display:flex;flex-direction:column;gap:8px;align-items:center;}
+.cc-toast{padding:11px 18px;border-radius:999px;background:var(--primary-dark);color:#fff;font-size:0.84rem;font-weight:600;opacity:0;transform:translateY(8px);transition:opacity .3s ease,transform .3s ease;box-shadow:0 10px 24px rgba(0,0,0,0.2);}
+.cc-toast.is-in{opacity:1;transform:translateY(0);}
+.cc-toast.is-error{background:var(--error);}
+
+/* ==========================================================
+   Profile page — desktop / tablet / mobile
+   ========================================================== */
+
+/* Note chip above avatar */
+.insta-note-chip{
+  position:relative;display:flex;align-items:center;gap:6px;
+  max-width:150px;margin:0 auto 8px;padding:7px 12px;
+  border:1px solid var(--border);border-radius:999px;background:var(--surface);
+  color:var(--text);font-size:0.74rem;font-weight:600;cursor:pointer;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.insta-note-chip:hover{border-color:var(--accent);}
+.insta-note-chip.is-empty{color:var(--text-muted);}
+.insta-note-avatar-col{display:flex;flex-direction:column;align-items:center;gap:8px;}
+
+/* Stats as buttons (open followers/following modals) */
+.insta-stat-btn{border:0;background:transparent;color:var(--text);font:inherit;cursor:pointer;padding:0;}
+.insta-stat-btn:hover{text-decoration:underline;}
+
+/* Link chip */
+.insta-link-chip{
+  display:inline-flex;align-items:center;gap:5px;align-self:flex-start;
+  padding:4px 11px;border:1px solid var(--border);border-radius:999px;
+  color:var(--primary);font-size:0.76rem;font-weight:700;max-width:100%;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+[data-theme="dark"] .insta-link-chip{color:var(--accent);}
+.insta-link-chip:hover{border-color:var(--accent);}
+
+/* Action buttons row */
+.insta-actions .btn.is-following{background:var(--bg);color:var(--text);border:1px solid var(--border);}
+.insta-icon-btn{width:38px;height:38px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:1.1rem;line-height:1;}
+
+/* ---------- Collections row ---------- */
+.insta-collections{display:flex;gap:18px;overflow-x:auto;padding:16px 28px 6px;scrollbar-width:none;}
+.insta-collections::-webkit-scrollbar{display:none;}
+.collection-circle{display:flex;flex-direction:column;align-items:center;gap:6px;border:0;background:transparent;cursor:pointer;flex:0 0 auto;}
+.collection-thumb{display:flex;align-items:center;justify-content:center;width:66px;height:66px;border-radius:50%;border:1px solid var(--border);background:var(--bg);color:var(--text-muted);font-size:1.6rem;overflow:hidden;}
+.collection-thumb img{width:100%;height:100%;object-fit:cover;}
+.collection-circle span{font-size:0.72rem;font-weight:700;color:var(--text);max-width:72px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+/* ---------- Tabs (4) ---------- */
+.insta-tabs{grid-template-columns:repeat(4,1fr);position:sticky;top:64px;z-index:5;background:var(--surface);}
+
+/* ---------- Listing grid ---------- */
+.profile-listing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;background:transparent;padding:4px;}
+.profile-grid-tile{position:relative;aspect-ratio:1;overflow:hidden;background:var(--primary-dark);border:0;padding:0;cursor:pointer;}
+.profile-grid-tile img{width:100%;height:100%;object-fit:cover;display:block;}
+.profile-grid-placeholder{display:flex;align-items:center;justify-content:center;width:100%;height:100%;color:rgba(255,255,255,0.7);font-size:1.8rem;background:var(--primary);}
+.profile-grid-overlay{
+  position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+  background:rgba(15,22,32,0.5);color:#fff;opacity:0;transition:opacity .18s ease;font-size:0.82rem;font-weight:700;
+}
+.profile-grid-tile:hover .profile-grid-overlay,.profile-grid-tile:focus-visible .profile-grid-overlay{opacity:1;}
+
+/* ---------- Skeleton loaders ---------- */
+.cc-skel{position:relative;overflow:hidden;background:var(--border);border-radius:8px;}
+.cc-skel::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.35),transparent);animation:cc-skel-shimmer 1.4s infinite;}
+[data-theme="dark"] .cc-skel::after{background:linear-gradient(90deg,transparent,rgba(255,255,255,0.08),transparent);}
+@keyframes cc-skel-shimmer{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
+@media (prefers-reduced-motion:reduce){.cc-skel::after{animation:none;}}
+
+/* ---------- Quick-view modal ---------- */
+.cc-quickview{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,300px);width:min(100%,780px);padding:0;overflow:hidden;}
+.cc-quickview-media{background:var(--primary-dark);aspect-ratio:1;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,0.7);}
+.cc-quickview-media img{width:100%;height:100%;object-fit:cover;}
+.cc-quickview-body{padding:24px;display:flex;flex-direction:column;gap:12px;overflow:auto;}
+.cc-quickview-body h2{font-size:1.3rem;}
+@media (max-width:700px){.cc-quickview{grid-template-columns:1fr;}.cc-quickview-media{aspect-ratio:16/10;}}
+
+/* ---------- Followers modal list ---------- */
+.cc-follow-row{display:flex;align-items:center;gap:11px;padding:10px 4px;}
+.cc-follow-row .cc-side-avatar{width:40px;height:40px;font-size:0.72rem;}
+.cc-follow-row .cc-result-copy{flex:1;}
+.cc-follow-row .btn{padding:7px 14px;font-size:0.76rem;}
+
+/* ---------- Reviews ---------- */
+.cc-review{padding:14px 4px;border-bottom:1px solid var(--border);}
+.cc-review-head{display:flex;align-items:center;gap:8px;margin-bottom:5px;}
+.cc-review-stars{color:var(--accent);letter-spacing:2px;font-size:0.9rem;}
+.cc-review p{font-size:0.86rem;color:var(--text);}
+.cc-review small{color:var(--text-muted);font-size:0.74rem;}
+
+/* ---------- Avatar crop preview ---------- */
+.cc-avatar-canvas-wrap{display:flex;justify-content:center;padding:8px 0;}
+.cc-avatar-canvas-wrap canvas{border-radius:50%;border:2px solid var(--border);max-width:180px;touch-action:none;}
+
+/* ---------- Progress bar (uploads) ---------- */
+.cc-progress{height:6px;border-radius:999px;background:var(--border);overflow:hidden;}
+.cc-progress > i{display:block;height:100%;background:var(--accent);width:0;transition:width .2s ease;}
+.cc-dropzone{border:2px dashed var(--border);border-radius:12px;padding:28px;text-align:center;color:var(--text-muted);cursor:pointer;transition:border-color .15s ease;}
+.cc-dropzone.is-drag{border-color:var(--accent);color:var(--accent);}
+.cc-dropzone input{display:none;}
+.cc-thumb-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
+.cc-thumb{position:relative;width:72px;height:72px;border-radius:8px;overflow:hidden;border:1px solid var(--border);}
+.cc-thumb img{width:100%;height:100%;object-fit:cover;}
+.cc-thumb button{position:absolute;top:2px;right:2px;width:22px;height:22px;border:0;border-radius:50%;background:rgba(15,22,32,0.7);color:#fff;cursor:pointer;font-size:0.8rem;line-height:1;}
+
+/* ---------- Mobile profile layout ---------- */
+@media (max-width:767px){
+  .insta-header{grid-template-columns:86px minmax(0,1fr);gap:14px;padding:14px 14px 10px;}
+  .insta-avatar{width:86px;height:86px;font-size:1.3rem;}
+  .insta-top-row{gap:8px;}
+  .insta-stats{justify-content:space-between;gap:0;}
+  .insta-actions{width:100%;}
+  .insta-actions .btn{flex:1;height:36px;padding:0 10px;display:inline-flex;align-items:center;justify-content:center;font-size:0.82rem;}
+  .insta-collections{scroll-snap-type:x mandatory;padding:12px 14px 4px;}
+  .collection-circle{scroll-snap-align:start;}
+  .collection-thumb{width:64px;height:64px;}
+  .insta-tabs{top:56px;}
+  .profile-listing-grid{gap:2px;padding:0;}
+  /* touch targets */
+  .cc-side-btn,.insta-tabs button{min-width:44px;min-height:44px;}
+  .insta-note-chip{min-height:44px;}
+}
+/* Full-screen quick view on mobile */
+@media (max-width:700px){
+  .modal-backdrop.is-quickview{padding:0;align-items:flex-end;}
+  .modal-backdrop.is-quickview .cc-quickview{width:100%;max-height:94vh;border-radius:16px 16px 0 0;}
+}
+
+/* bottom nav already uses env(safe-area-inset-bottom); keep pill/drawer clear of it on tablet */
+@media (min-width:768px) and (max-width:1023px){
+  .cc-sidebar{display:none;}
+}
+

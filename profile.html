@@ -49,7 +49,10 @@
       <!-- Instagram-style header -->
       <div class="insta-header">
         <div class="insta-avatar-wrap">
-          <div class="insta-avatar" id="profilePageAvatar" aria-label="Profile picture">CC</div>
+          <div class="insta-avatar-col">
+            <button class="insta-note-chip is-empty" id="noteChip" type="button" aria-label="Add or edit your note">Note…</button>
+            <div class="insta-avatar" id="profilePageAvatar" aria-label="Profile picture">CC</div>
+          </div>
           <button class="insta-avatar-edit" id="avatarEditBtn" type="button" aria-label="Change profile picture">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8a4 4 0 1 0 0 8a4 4 0 0 0 0-8z"/><path d="M4 12a8 8 0 0 1 8-8v0a8 8 0 0 1 8 8v0a8 8 0 0 1-8 8v0a8 8 0 0 1-8-8z"/><path d="M18 6l1 1"/></svg>
           </button>
@@ -58,52 +61,52 @@
         <div class="insta-meta">
           <div class="insta-top-row">
             <h1 class="insta-username" id="profileUsernameDisplay">username_</h1>
-            <button class="insta-gear" id="instaSettingsBtn" type="button" aria-label="Settings">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8a4 4 0 1 0 0 8a4 4 0 0 0 0-8z"/><path d="M19.2 14.3l.6-1.5-.6-1.5 1-1-1-1.7-1.4.4-.9-1.1.1-1.4h-2l-.5-1.3h-1l-.5 1.3h-2l.1 1.4-.9 1.1-1.4-.4-1 1.7 1 1-.6 1.5.6 1.5-1 1 1 1.7 1.4-.4.9 1.1-.1 1.4h2l.5 1.3h1l.5-1.3h2l-.1-1.4.9-1.1 1.4.4 1-1.7-1-1z"/></svg>
-            </button>
-            <a href="settings.html" class="insta-settings-link" aria-label="Open settings">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8a4 4 0 1 0 0 8a4 4 0 0 0 0-8z"/><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/></svg>
-            </a>
+            <button class="insta-icon-btn" id="profileMoreBtn" type="button" aria-label="More options" hidden>•••</button>
           </div>
           <div class="insta-stats">
-            <span><strong id="statPosts">3</strong> posts</span>
-            <span><strong>270</strong> followers</span>
-            <span><strong>322</strong> following</span>
+            <span><strong id="statPosts">0</strong> listings</span>
+            <button class="insta-stat-btn" id="followersStat" type="button"><strong id="statFollowers">0</strong> followers</button>
+            <button class="insta-stat-btn" id="followingStat" type="button"><strong id="statFollowing">0</strong> following</button>
           </div>
           <div class="insta-identity">
             <strong id="profileRealName">Student</strong>
             <span id="profileCampusBadge" class="insta-campus">Main Campus</span>
-            <p id="profileBio" class="insta-bio">Student seller and campus community member.</p>
-            <p class="insta-handle">@<span id="profileHandle">username</span></p>
+            <p id="profileBio" class="insta-bio"></p>
+            <a class="insta-link-chip" id="profileLink" href="#" target="_blank" rel="noopener" hidden></a>
           </div>
-          <div class="insta-actions">
+          <div class="insta-actions" id="profileActions">
             <button class="btn btn-primary" id="profileEditAction" type="button">Edit profile</button>
-            <button class="btn btn-outline" id="shareProfileAction" type="button">Share profile</button>
+            <button class="btn btn-outline" id="viewArchiveAction" type="button">View archive</button>
           </div>
         </div>
       </div>
 
-      <div class="insta-new-row">
-        <button class="insta-new" type="button" aria-label="New listing">
-          <span class="insta-new-plus">+</span>
-        </button>
-        <span class="insta-new-label">New</span>
-      </div>
+      <div class="insta-collections" id="collectionsRow"></div>
 
-      <div class="profile-tabs insta-tabs">
-        <button class="is-active" type="button" data-profile-tab="listings" aria-label="Posts">
+      <div class="profile-tabs insta-tabs" id="profileTabs">
+        <button class="is-active" type="button" data-profile-tab="listings" aria-label="Listings">
           <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
         </button>
         <button type="button" data-profile-tab="saved" aria-label="Saved">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4.5A1.5 1.5 0 0 1 7.5 3h9A1.5 1.5 0 0 1 18 4.5V21l-6-3-6 3z"/></svg>
         </button>
-        <button type="button" data-profile-tab="reviews" aria-label="Tagged">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M5 20a7 7 0 0 1 14 0"/></svg>
+        <button type="button" data-profile-tab="sold" aria-label="Sold">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>
+        </button>
+        <button type="button" data-profile-tab="reviews" aria-label="Reviews">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/></svg>
         </button>
       </div>
 
-      <div class="profile-listing-grid" id="profileListings"><div class="profile-listing-tile image-tutoring"><img src="assets/hero-poster.jpg" alt="Your tutoring listing"><span>Calc II tutoring</span></div><div class="profile-listing-tile image-fridge"><img src="assets/hero-poster.jpg" alt="Your goods listing"><span>Campus goods</span></div><div class="profile-listing-tile image-design"><img src="assets/hero-poster.jpg" alt="Your gig listing"><span>Creative gigs</span></div></div>
-      <div class="empty-panel profile-tab-empty" id="profileTabEmpty" hidden><div class="empty-panel-icon">✦</div><h3 id="profileEmptyTitle">No saved listings yet</h3><p id="profileEmptyText">Save useful campus listings and they will appear here.</p></div>
+      <div class="profile-listing-grid" id="profileListings"></div>
+      <div id="profileReviews" hidden></div>
+      <div id="profileSentinel" style="height:1px"></div>
+      <div class="empty-panel profile-tab-empty" id="profileTabEmpty" hidden>
+        <div class="empty-panel-icon" id="profileEmptyIcon">✦</div>
+        <h3 id="profileEmptyTitle">No listings yet</h3>
+        <p id="profileEmptyText">When you post a listing it will show up here.</p>
+        <a class="btn btn-accent" id="profileEmptyCta" href="create-listing.html" hidden>Post your first listing</a>
+      </div>
     </section>
   </div>
 </main>
@@ -132,9 +135,71 @@
       </label>
       <label>Bio
         <textarea id="editBio" rows="3" maxlength="150" placeholder="Memento mori..."></textarea>
+        <small class="field-hint" id="editBioCount">0 / 150</small>
+      </label>
+      <label>Link
+        <input type="url" id="editLink" maxlength="200" placeholder="https://your-link.example">
       </label>
       <button class="btn btn-primary auth-submit" type="submit">Save</button>
     </form>
+  </section>
+</div>
+
+<!-- Quick view modal -->
+<div class="modal-backdrop is-quickview" id="quickViewModal" hidden>
+  <section class="listing-modal cc-quickview" role="dialog" aria-modal="true" aria-labelledby="qvTitle">
+    <button class="modal-close" id="closeQuickView" type="button" aria-label="Close">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
+    </button>
+    <div class="cc-quickview-media" id="qvMedia"></div>
+    <div class="cc-quickview-body">
+      <h2 id="qvTitle"></h2>
+      <p class="listing-price" id="qvPrice"></p>
+      <p id="qvDesc" style="color:var(--text-muted);font-size:0.9rem;"></p>
+      <p id="qvMeta" style="color:var(--text-muted);font-size:0.8rem;"></p>
+      <div class="insta-actions">
+        <a class="btn btn-primary" id="qvOpen" href="#">View details</a>
+        <button class="btn btn-outline" id="qvSave" type="button">Save</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- Followers / following modal -->
+<div class="modal-backdrop" id="followModal" hidden>
+  <section class="listing-modal" role="dialog" aria-modal="true" aria-labelledby="followModalTitle" style="max-width:420px;">
+    <button class="modal-close" id="closeFollowModal" type="button" aria-label="Close">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
+    </button>
+    <h2 id="followModalTitle">Followers</h2>
+    <input type="search" id="followSearch" placeholder="Search" aria-label="Search people" style="width:100%;margin:10px 0;padding:10px 14px;border:1px solid var(--border);border-radius:999px;background:var(--bg);color:var(--text);font:inherit;">
+    <div id="followList"></div>
+  </section>
+</div>
+
+<!-- Note editor modal -->
+<div class="modal-backdrop" id="noteModal" hidden>
+  <section class="listing-modal" role="dialog" aria-modal="true" aria-labelledby="noteModalTitle" style="max-width:380px;">
+    <button class="modal-close" id="closeNoteModal" type="button" aria-label="Close">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
+    </button>
+    <h2 id="noteModalTitle">Your note</h2>
+    <p style="color:var(--text-muted);font-size:0.82rem;margin-bottom:12px;">Visible on your profile for 24 hours.</p>
+    <input type="text" id="noteInput" maxlength="60" placeholder="Share a thought…" aria-label="Note" style="width:100%;padding:11px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);font:inherit;">
+    <span class="char-hint" id="noteCount">0/60</span>
+    <div class="insta-actions" style="margin-top:14px;">
+      <button class="btn btn-primary" id="noteSave" type="button">Save</button>
+      <button class="btn btn-outline" id="noteDelete" type="button" hidden>Delete</button>
+    </div>
+  </section>
+</div>
+
+<!-- More options modal -->
+<div class="modal-backdrop" id="moreModal" hidden>
+  <section class="listing-modal" role="dialog" aria-modal="true" aria-labelledby="moreModalTitle" style="max-width:320px;padding:20px;">
+    <h2 id="moreModalTitle" style="font-size:1.1rem;margin-bottom:10px;">Options</h2>
+    <button class="btn btn-outline" id="moreCopyLink" type="button" style="width:100%;margin-bottom:8px;">Copy link</button>
+    <button class="btn btn-outline" id="moreReport" type="button" style="width:100%;color:var(--error);border-color:var(--error);">Report</button>
   </section>
 </div>
 
@@ -147,6 +212,7 @@
 </nav>
 
 <script src="script.js"></script>
-<script src="profile.js"></script>
+<script src="shared-header.js"></script>
+<script src="profile-api.js"></script>
 </body>
 </html>

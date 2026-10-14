@@ -212,6 +212,64 @@
             border: 1px solid #cfc;
             display: block;
         }
+        .image-dropzone {
+            border: 2px dashed var(--border);
+            border-radius: var(--radius);
+            background: var(--surface);
+            padding: 28px 16px;
+            text-align: center;
+            cursor: pointer;
+            min-height: 44px;
+        }
+        .image-dropzone:hover,
+        .image-dropzone:focus-visible,
+        .image-dropzone.is-dragover {
+            border-color: var(--primary);
+            outline: none;
+        }
+        .image-dropzone p { margin: 0; color: var(--text-muted); }
+        .dropzone-link { color: var(--primary); font-weight: 600; }
+        .image-preview-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+        }
+        .image-preview {
+            position: relative;
+            width: 84px;
+            height: 84px;
+            border-radius: var(--radius);
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+        .image-preview img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .image-preview-remove {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            width: 24px;
+            height: 24px;
+            border: none;
+            border-radius: 50%;
+            background: var(--primary-dark);
+            color: var(--surface);
+            cursor: pointer;
+            line-height: 1;
+        }
+        .image-progress-wrap {
+            margin-top: 12px;
+            height: 6px;
+            border-radius: var(--radius);
+            background: var(--border);
+            overflow: hidden;
+        }
+        .image-progress-bar {
+            height: 100%;
+            width: 0;
+            background: var(--accent);
+            transition: width .2s ease;
+        }
     </style>
 </head>
 <body>
@@ -285,6 +343,19 @@
                 <div class="form-hint" id="descHint">Details help buyers find what they need</div>
             </div>
 
+            <div class="form-group">
+                <label>Photos (optional, up to 10)</label>
+                <div id="imageDropzone" class="image-dropzone" role="button" tabindex="0" aria-label="Add listing photos">
+                    <p>Drag &amp; drop images here, or <span class="dropzone-link">browse</span></p>
+                    <p class="form-hint">JPG, PNG, WebP or GIF — max 5MB each</p>
+                </div>
+                <input type="file" id="imageFiles" accept="image/jpeg,image/png,image/webp,image/gif" multiple hidden>
+                <div id="imagePreviewRow" class="image-preview-row"></div>
+                <div id="imageProgressWrap" class="image-progress-wrap" hidden>
+                    <div id="imageProgressBar" class="image-progress-bar"></div>
+                </div>
+            </div>
+
             <div class="form-actions">
                 <button type="button" class="btn-cancel" onclick="window.location.href='listings.html';">Cancel</button>
                 <button type="submit" class="btn-submit">Post Listing</button>
@@ -302,6 +373,87 @@
         const titleHint = document.getElementById('titleHint');
         const formMessage = document.getElementById('formMessage');
         const form = document.getElementById('createListingForm');
+
+        // --- Image upload: drag-and-drop, previews, progress, then URLs passed as image_ids ---
+        const dropzone = document.getElementById('imageDropzone');
+        const fileInput = document.getElementById('imageFiles');
+        const previewRow = document.getElementById('imagePreviewRow');
+        const progressWrap = document.getElementById('imageProgressWrap');
+        const progressBar = document.getElementById('imageProgressBar');
+        let pendingFiles = [];
+        const MAX_IMAGES = 10;
+        const MAX_BYTES = 5 * 1024 * 1024;
+
+        function addFiles(fileList) {
+            Array.from(fileList).forEach(function(file) {
+                if (pendingFiles.length >= MAX_IMAGES) { showMessage('You can add at most ' + MAX_IMAGES + ' images.', 'error'); return; }
+                if (!/^image\/(jpeg|png|webp|gif)$/.test(file.type)) { showMessage(file.name + ': only JPG, PNG, WebP or GIF images are allowed.', 'error'); return; }
+                if (file.size > MAX_BYTES) { showMessage(file.name + ' is larger than 5MB.', 'error'); return; }
+                pendingFiles.push(file);
+                renderPreview(file, pendingFiles.length - 1);
+            });
+        }
+
+        function renderPreview(file, index) {
+            const wrap = document.createElement('div');
+            wrap.className = 'image-preview';
+            const img = document.createElement('img');
+            img.alt = file.name;
+            img.src = URL.createObjectURL(file);
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.className = 'image-preview-remove';
+            removeBtn.setAttribute('aria-label', 'Remove image');
+            removeBtn.textContent = '×';
+            removeBtn.addEventListener('click', function() {
+                pendingFiles[index] = null;
+                wrap.remove();
+            });
+            wrap.appendChild(img);
+            wrap.appendChild(removeBtn);
+            previewRow.appendChild(wrap);
+        }
+
+        dropzone.addEventListener('click', function() { fileInput.click(); });
+        dropzone.addEventListener('keydown', function(e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInput.click(); } });
+        fileInput.addEventListener('change', function() { addFiles(fileInput.files); fileInput.value = ''; });
+        ['dragenter', 'dragover'].forEach(function(evt) {
+            dropzone.addEventListener(evt, function(e) { e.preventDefault(); dropzone.classList.add('is-dragover'); });
+        });
+        ['dragleave', 'drop'].forEach(function(evt) {
+            dropzone.addEventListener(evt, function(e) { e.preventDefault(); dropzone.classList.remove('is-dragover'); });
+        });
+        dropzone.addEventListener('drop', function(e) { if (e.dataTransfer) addFiles(e.dataTransfer.files); });
+
+        function uploadImages() {
+            const files = pendingFiles.filter(Boolean);
+            if (!files.length) return Promise.resolve([]);
+            const data = new FormData();
+            files.forEach(function(f) { data.append('images[]', f); });
+            progressWrap.hidden = false;
+            progressBar.style.width = '0%';
+            return new Promise(function(resolve, reject) {
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', 'api/listings/upload-images.php');
+                xhr.setRequestHeader('Authorization', 'Bearer ' + token);
+                xhr.upload.addEventListener('progress', function(e) {
+                    if (e.lengthComputable) progressBar.style.width = Math.round((e.loaded / e.total) * 100) + '%';
+                });
+                xhr.onload = function() {
+                    progressWrap.hidden = true;
+                    try {
+                        const result = JSON.parse(xhr.responseText);
+                        if (xhr.status < 400 && result.success) {
+                            resolve((result.images || []).map(function(img) { return img.image_url; }));
+                        } else {
+                            reject(new Error(result.error || 'Image upload failed.'));
+                        }
+                    } catch (err) { reject(new Error('Image upload failed.')); }
+                };
+                xhr.onerror = function() { progressWrap.hidden = true; reject(new Error('Image upload failed.')); };
+                xhr.send(data);
+            });
+        }
 
         titleInput.addEventListener('input', function() {
             titleHint.textContent = this.value.length + ' / 160 characters';
@@ -326,6 +478,7 @@
             submitBtn.textContent = 'Posting...';
 
             try {
+                const imageUrls = await uploadImages();
                 const response = await fetch('api/listings/create.php', {
                     method: 'POST',
                     headers: {
@@ -338,7 +491,8 @@
                         description: description,
                         category: category,
                         campus: campus,
-                        price: price ? parseFloat(price) : null
+                        price: price ? parseFloat(price) : null,
+                        image_ids: imageUrls
                     })
                 });
 

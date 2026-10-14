@@ -63,6 +63,21 @@ try {
 
     $listingId = (int) $pdo->lastInsertId();
 
+    // Attach previously uploaded images (they store serving URLs).
+    $imageIds = $body['image_ids'] ?? [];
+    if (is_array($imageIds) && $imageIds) {
+        $urls = [];
+        foreach (array_slice($imageIds, 0, 10) as $url) {
+            $url = trim((string) $url);
+            if (preg_match('#^/api/uploads/serve\.php\?f=[a-z0-9_%.-]+$#i', $url)) $urls[] = $url;
+        }
+        $order = 0;
+        $ins = $pdo->prepare('INSERT INTO listing_images (listing_id, image_url, display_order, created_at) VALUES (:l, :u, :o, :c)');
+        foreach ($urls as $url) {
+            $ins->execute(['l' => $listingId, 'u' => $url, 'o' => $order++, 'c' => $now]);
+        }
+    }
+
     echo json_encode([
         'success' => true,
         'listing' => [
