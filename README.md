@@ -109,30 +109,20 @@ Then open `http://localhost:8000`.
 
 ## Project Structure
 
-```
-campus-connect-mobile/
-├── colors.md                     # Shared brand color reference
-├── README.md
-├── android/
-│   ├── colors.xml                # res/values/colors.xml
-│   └── ic_splash_logo.xml        # res/drawable/ic_splash_logo.xml
-│   # (full Android Studio project lives alongside these — see app/ folder)
-└── website/
-    ├── index.html                # Landing page (hero video, features, waitlist)
-    ├── login.html
-    ├── signup.html
-    ├── home.html
-    ├── style.css                 # Shared styling + theme tokens
-    ├── script.js                 # Theme toggle + waitlist form (index.html)
-    ├── auth.js                   # Login/signup form handling
-    ├── home.js                   # Session check + logout
-    ├── login.php                 # Auth backend
-    ├── auth_api.php              # Shared REST API for mobile & web auth
-    ├── auth_lib.php              # Auth business logic, token & password handling
-    ├── login.php                 # Auth backend
-    ├── signup.php                # Account creation backend
-    └── submit.php                # Waitlist signup backend
-```
+This directory contains the PHP web application with:
+- API endpoints in the `api/` directory
+- Static assets in the `assets/` directory  
+- HTML, CSS, and JavaScript files in the root directory
+
+Key directories and files:
+- `api/` - PHP backend API endpoints (authentication, listings, reviews, messaging, etc.)
+- `assets/` - Static assets (images, icons, etc.)
+- Root directory - HTML pages (index.html, login.html, signup.html, home.html, etc.), CSS (style.css), JavaScript (auth.js, home.js, script.js, etc.)
+
+The mobile Android application is located in a separate repository: `Videos/CampusConnectMobile/`
+
+Shared resources:
+- `colors.md` - Shared brand color reference (located in the mobile app repository)
 
 ---
 

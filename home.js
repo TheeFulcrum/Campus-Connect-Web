@@ -1,4 +1,4 @@
-document.addEventListener('DOMContentLoaded', function () {
+document.addEventListener('DOMContentLoaded', async function () {
   const raw = sessionStorage.getItem('cc-user');
 
   if (!raw) {
@@ -37,6 +37,115 @@ document.addEventListener('DOMContentLoaded', function () {
   const savedPreferences = storedPreferences
     .flatMap(function (preference) { return preferenceAliases[preference] || [preference]; })
     .filter(function (preference) { return allPreferences.includes(preference); });
+
+  // Fetch and render listings from API
+  async function fetchListings() {
+    try {
+      const response = await fetch('api/listings/list.php?status=active');
+      if (!response.ok) throw new Error('Failed to fetch listings');
+      const data = await response.json();
+      return data.listings || [];
+    } catch (error) {
+      console.error('Error fetching listings:', error);
+      return []; // Return empty array on error
+    }
+  }
+
+  function renderListings() {
+    const listingFeed = document.getElementById('listingFeed');
+    if (!listingFeed) return;
+
+    // Show loading state
+    listingFeed.innerHTML = '<div class="listing-loading">Loading listings...</div>';
+
+    fetchListings().then(listings => {
+      if (listings.length === 0) {
+        listingFeed.innerHTML = '<p class="empty-feed">No listings available.</p>';
+        return;
+      }
+
+      // Clear and populate feed
+      listingFeed.innerHTML = '';
+      listings.forEach(listing => {
+        const card = document.createElement('article');
+        card.className = 'listing-card';
+        card.dataset.category = listing.category || 'goods';
+        card.dataset.subcategory = listing.subcategory || '';
+        card.dataset.search = ((listing.title || '') + ' ' + (listing.description || '') + ' ' + (listing.subcategory || '')).toLowerCase();
+
+        // Format time ago
+        const timeAgo = formatRelative(listing.created_at || Date.now());
+
+        card.innerHTML = `
+          <div class="listing-card-header">
+            <div class="seller-avatar ${getAvatarClass(listing.seller_avatar || 'avatar-navy')}">${getInitials(listing.seller_name || 'User')}</div>
+            <div class="seller-details"><strong>${escapeHtml(listing.seller_name || 'User')}</strong><span>${listing.campus || 'Main Campus'} · ${timeAgo}</span></div>
+            <button class="icon-button listing-menu" type="button" aria-label="More options">•••</button>
+          </div>
+          <div class="listing-image ${getImageClass(listing.category || 'goods')}"><img src="${listing.image_url || 'assets/adverts/default.jpg'}" alt="${escapeHtml(listing.title || 'Listing')}"></div>
+          <div class="listing-content">
+            <div class="listing-meta"><span class="listing-tag ${getTagClass(listing.category || 'goods')}">${getCategoryText(listing.category || 'goods')}</span><span class="listing-price">${formatPrice(listing.price)}</span></div>
+            <h2>${escapeHtml(listing.title || 'Untitled Listing')}</h2>
+            <p>${escapeHtml(listing.description || 'No description available.')}</p>
+            <div class="listing-actions">
+              <button class="feed-action like-button" type="button" aria-label="Like listing"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 8.6c0 5.2-8.8 10.2-8.8 10.2S3.2 13.8 3.2 8.6A4.6 4.6 0 0 1 12 6.3a4.6 4.6 0 0 1 8.8 2.3z"/></svg><b>${listing.likes_count || 0}</b></button>
+              <button class="feed-action" type="button" data-message="${escapeHtml(listing.seller_name || 'User')}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11.5a7.5 7.5 0 0 1-8 7.5 8.5 8.5 0 0 1-4-.9L4 20l1.2-3.3A7.2 7.2 0 0 1 4 12.5 7.5 7.5 0 0 1 12 5a7.5 7.5 0 0 1 8 6.5z"/></svg><b>Message</b></button>
+              <button class="feed-action save-button" type="button" aria-label="Save listing"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4.5A1.5 1.5 0 0 1 7.5 3h9A1.5 1.5 0 0 1 18 4.5V21l-6-3-6 3z"/></svg></button>
+            </div>
+          </div>
+        `;
+
+        listingFeed.appendChild(card);
+      });
+
+      // Apply existing filters
+      filterListings();
+    });
+  }
+
+  // Helper functions for listing rendering
+  function getInitials(name) {
+    if (!name) return '?';
+    const parts = name.split(' ');
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return name.slice(0, 2).toUpperCase();
+  }
+
+  function getAvatarClass(avatar) {
+    return avatar || 'avatar-navy';
+  }
+
+  function getImageClass(category) {
+    return `image-${category || 'goods'}`;
+  }
+
+  function getTagClass(category) {
+    switch (category || 'goods') {
+      case 'services': return 'tag-green';
+      case 'goods': return 'tag-orange';
+      case 'gigs': return 'tag-blue';
+      default: return 'tag-gray';
+    }
+  }
+
+  function getCategoryText(category) {
+    switch (category || 'goods') {
+      case 'services': return 'Service';
+      case 'goods': return 'For sale';
+      case 'gigs': return 'Gig';
+      default: return 'Item';
+    }
+  }
+
+  function formatPrice(price) {
+    if (price === null || price === undefined) return 'Free';
+    const num = parseFloat(price);
+    if (isNaN(num)) return 'Free';
+    if (num === 0) return 'Free';
+    return `K${num.toFixed(0)}`;
+  }
 
   document.getElementById('campusLine').textContent = 'Campus: ' + (user.campus || 'Main Campus');
   document.getElementById('profileName').textContent = username;
@@ -79,7 +188,10 @@ document.addEventListener('DOMContentLoaded', function () {
   let activeView = 'home';
   let activeConversationId = null;
   const conversationKey = 'cc-conversations-' + (user.email || username).toLowerCase();
-  let conversations = loadConversations();
+  let conversations = await loadConversations();
+
+  // Load and render listings
+  renderListings();
 
   if (searchNavButton && searchNavPopover) {
     searchNavButton.addEventListener('click', function () {
@@ -101,34 +213,168 @@ document.addEventListener('DOMContentLoaded', function () {
   function formatBubbleTime(at) {
     try { return new Date(at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); } catch (e) { return ''; }
   }
-  function loadConversations() {
+
+  // Listing fetching and rendering
+  async function fetchListings() {
     try {
-      const stored = JSON.parse(localStorage.getItem(conversationKey) || 'null');
-      if (Array.isArray(stored) && stored.length) {
-        return stored.map(function (c) {
-          c.messages = (c.messages || []).map(function (m) { if (typeof m.at !== 'number') m.at = Date.now() - 600000; return m; });
-          if (typeof c.lastAt !== 'number') {
-            var last = c.messages[c.messages.length - 1];
-            c.lastAt = last ? last.at : Date.now();
-          }
-          if (!c.time) c.time = formatRelative(c.lastAt);
-          return c;
-        }).sort(function (a, b) { return (b.lastAt || 0) - (a.lastAt || 0); });
+      const response = await fetch('api/listings/list.php?status=active');
+      if (!response.ok) throw new Error('Failed to fetch listings');
+      const data = await response.json();
+      return data.listings || [];
+    } catch (error) {
+      console.error('Error fetching listings:', error);
+      return []; // Return empty array on error
+    }
+  }
+
+  function renderListings() {
+    const listingFeed = document.getElementById('listingFeed');
+    if (!listingFeed) return;
+
+    // Show loading state
+    listingFeed.innerHTML = '<div class="listing-loading">Loading listings...</div>';
+
+    fetchListings().then(listings => {
+      if (listings.length === 0) {
+        listingFeed.innerHTML = '<p class="empty-feed">No listings available.</p>';
+        return;
       }
-    } catch (error) {}
-    var now = Date.now();
-    var seeded = [
-      { id: 'alex-tutoring', name: 'Alex M.', initials: 'AM', avatar: 'avatar-navy', listing: 'Calc II tutoring · K50/hr', time: '12m', lastAt: now - 12 * 60000, unread: true, messages: [{ text: 'Hey! Is Tuesday at 17:00 at the library still good for Calc II?', mine: false, at: now - 13 * 60000 }, { text: 'I can bring past papers and we can focus on integration.', mine: false, at: now - 12 * 60000 }] },
-      { id: 'tendai-fridge', name: 'Tendai N.', initials: 'TN', avatar: 'avatar-orange', listing: 'Mini fridge · K450', time: '34m', lastAt: now - 34 * 60000, unread: true, messages: [{ text: 'Hi, is the mini fridge still available near Block C?', mine: false, at: now - 35 * 60000 }, { text: 'Yes — clean and ready for pickup tomorrow afternoon.', mine: false, at: now - 34 * 60000 }] }
-    ];
-    localStorage.setItem(conversationKey, JSON.stringify(seeded));
-    return seeded;
+
+      // Clear and populate feed
+      listingFeed.innerHTML = '';
+      listings.forEach(listing => {
+        const card = document.createElement('article');
+        card.className = 'listing-card';
+        card.dataset.category = listing.category || 'goods';
+        card.dataset.subcategory = listing.subcategory || '';
+        card.dataset.search = ((listing.title || '') + ' ' + (listing.description || '') + ' ' + (listing.subcategory || '')).toLowerCase();
+
+        // Format time ago
+        const timeAgo = formatRelative(listing.created_at || Date.now());
+
+        card.innerHTML = `
+          <div class="listing-card-header">
+            <div class="seller-avatar ${getAvatarClass(listing.seller_avatar || 'avatar-navy')}">${getInitials(listing.seller_name || 'User')}</div>
+            <div class="seller-details"><strong>${escapeHtml(listing.seller_name || 'User')}</strong><span>${listing.campus || 'Main Campus'} · ${timeAgo}</span></div>
+            <button class="icon-button listing-menu" type="button" aria-label="More options">•••</button>
+          </div>
+          <div class="listing-image ${getImageClass(listing.category || 'goods')}"><img src="${listing.image_url || 'assets/adverts/default.jpg'}" alt="${escapeHtml(listing.title || 'Listing')}"></div>
+          <div class="listing-content">
+            <div class="listing-meta"><span class="listing-tag ${getTagClass(listing.category || 'goods')}">${getCategoryText(listing.category || 'goods')}</span><span class="listing-price">${formatPrice(listing.price)}</span></div>
+            <h2>${escapeHtml(listing.title || 'Untitled Listing')}</h2>
+            <p>${escapeHtml(listing.description || 'No description available.')}</p>
+            <div class="listing-actions">
+              <button class="feed-action like-button" type="button" aria-label="Like listing"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 8.6c0 5.2-8.8 10.2-8.8 10.2S3.2 13.8 3.2 8.6A4.6 4.6 0 0 1 12 6.3a4.6 4.6 0 0 1 8.8 2.3z"/></svg><b>${listing.likes_count || 0}</b></button>
+              <button class="feed-action" type="button" data-message="${escapeHtml(listing.seller_name || 'User')}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11.5a7.5 7.5 0 0 1-8 7.5 8.5 8.5 0 0 1-4-.9L4 20l1.2-3.3A7.2 7.2 0 0 1 4 12.5 7.5 7.5 0 0 1 12 5a7.5 7.5 0 0 1 8 6.5z"/></svg><b>Message</b></button>
+              <button class="feed-action save-button" type="button" aria-label="Save listing"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4.5A1.5 1.5 0 0 1 7.5 3h9A1.5 1.5 0 0 1 18 4.5V21l-6-3-6 3z"/></svg></button>
+            </div>
+          </div>
+        `;
+
+        listingFeed.appendChild(card);
+      });
+
+      // Apply existing filters
+      filterListings();
+    });
+  }
+
+  // Helper functions for listing rendering
+  function getInitials(name) {
+    if (!name) return '?';
+    const parts = name.split(' ');
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return name.slice(0, 2).toUpperCase();
+  }
+
+  function getAvatarClass(avatar) {
+    return avatar || 'avatar-navy';
+  }
+
+  function getImageClass(category) {
+    return `image-${category || 'goods'}`;
+  }
+
+  function getTagClass(category) {
+    switch (category || 'goods') {
+      case 'services': return 'tag-green';
+      case 'goods': return 'tag-orange';
+      case 'gigs': return 'tag-blue';
+      default: return 'tag-gray';
+    }
+  }
+
+  function getCategoryText(category) {
+    switch (category || 'goods') {
+      case 'services': return 'Service';
+      case 'goods': return 'For sale';
+      case 'gigs': return 'Gig';
+      default: return 'Item';
+    }
+  }
+
+  function formatPrice(price) {
+    if (price === null || price === undefined) return 'Free';
+    const num = parseFloat(price);
+    if (isNaN(num)) return 'Free';
+    if (num === 0) return 'Free';
+    return `K${num.toFixed(0)}`;
+  }
+  async function loadConversations() {
+    try {
+      const response = await fetch('api/messages/conversations.php');
+      if (!response.ok) throw new Error('Failed to fetch conversations');
+      const data = await response.json();
+      if (data.success && data.conversations) {
+        // Format conversations for UI
+        return data.conversations.map(conv => ({
+          id: conv.id.toString(),
+          name: conv.other_user.name || 'User',
+          initials: (conv.other_user.name || 'User').split(' ').map(part => part[0]).join('').slice(0, 2).toUpperCase() || '??',
+          avatar: `avatar-${conv.other_user.avatar_color || 'navy'}`,
+          listing: conv.listing ? `${conv.listing.title} · ${formatPrice(conv.listing.price)}` : 'Campus listing',
+          time: formatRelative(conv.last_message_at || Date.now()),
+          lastAt: conv.last_message_at ? conv.last_message_at * 1000 : Date.now(), // Convert to milliseconds if needed
+          unread: conv.unread_count > 0,
+          messages: [] // Will be loaded when conversation is opened
+        }));
+      }
+    } catch (error) {
+      console.error('Error loading conversations:', error);
+      // Fallback to local storage if API fails
+      try {
+        const stored = JSON.parse(localStorage.getItem(conversationKey) || 'null');
+        if (Array.isArray(stored) && stored.length) {
+          return stored.map(function (c) {
+            c.messages = (c.messages || []).map(function (m) { if (typeof m.at !== 'number') m.at = Date.now() - 600000; return m; });
+            if (typeof c.lastAt !== 'number') {
+              var last = c.messages[c.messages.length - 1];
+              c.lastAt = last ? last.at : Date.now();
+            }
+            if (!c.time) c.time = formatRelative(c.lastAt);
+            return c;
+          }).sort(function (a, b) { return (b.lastAt || 0) - (a.lastAt || 0); });
+        }
+      } catch (e) {}
+    }
+    // Final fallback: return empty array
+    return [];
   }
 
   function saveConversations() {
-    conversations.forEach(function (c) { c.time = formatRelative(c.lastAt); });
-    conversations.sort(function (a, b) { return (b.lastAt || 0) - (a.lastAt || 0); });
-    localStorage.setItem(conversationKey, JSON.stringify(conversations));
+    // Save to local storage for caching/offline support
+    try {
+      const toSave = conversations.map(c => ({
+        ...c,
+        time: formatRelative(c.lastAt)
+      }));
+      toSave.sort((a, b) => (b.lastAt || 0) - (a.lastAt || 0));
+      localStorage.setItem(conversationKey, JSON.stringify(toSave));
+    } catch (e) {
+      console.warn('Failed to save conversations to local storage:', e);
+    }
   }
 
   function renderConversations() {
@@ -156,10 +402,33 @@ document.addEventListener('DOMContentLoaded', function () {
     return html;
   }
 
-  function openConversation(id) {
+  async function openConversation(id) {
     const conversation = conversations.find(function (item) { return item.id === id; });
     if (!conversation) return;
     activeConversationId = id;
+
+    // Show loading state
+    chatMessages.innerHTML = '<div class="chat-loading">Loading messages...</div>';
+
+    try {
+      // Fetch messages for this conversation from API
+      const response = await fetch(`api/messages/thread.php?conversation_id=${id}`);
+      if (!response.ok) throw new Error('Failed to fetch messages');
+      const data = await response.json();
+
+      if (data.success && data.messages) {
+        // Update the conversation with fetched messages
+        conversation.messages = data.messages.map(msg => ({
+          ...msg,
+          mine: msg.sender_id === user.id, // Assuming user.id is available
+          at: msg.created_at * 1000 // Convert to milliseconds if needed
+        }));
+      }
+    } catch (error) {
+      console.error('Error loading messages:', error);
+      // Keep existing messages if API fails
+    }
+
     conversation.unread = false;
     saveConversations();
     chatName.textContent = conversation.name;
@@ -173,45 +442,62 @@ document.addEventListener('DOMContentLoaded', function () {
     chatMessages.scrollTop = chatMessages.scrollHeight;
   }
 
-  function pickReply(listing) {
-    var replies = {
-      'Calc II': ['Great — Tuesday 17:00 works. Meet at the library main desk?', 'I can share past exam papers as well. What topics feel trickiest?'],
-      'Mini fridge': ['Yes still available! Are you on Main or Great East? We can arrange pickup after 15:00.', 'Happy to hold it until tomorrow if you need.'],
-      'default': ['Thanks for reaching out! When suits you to meet on campus?', 'Happy to help — let me know what you had in mind.', 'Got it! I can meet in a public spot near campus.']
-    };
-    for (var k in replies) { if (k !== 'default' && listing.indexOf(k) !== -1) return replies[k][Math.floor(Math.random() * replies[k].length)]; }
-    var d = replies['default']; return d[Math.floor(Math.random() * d.length)];
-  }
 
   renderConversations();
-  chatForm.addEventListener('submit', function (event) {
+  chatForm.addEventListener('submit', async function (event) {
     event.preventDefault();
     const text = chatInput.value.trim();
     const conversation = conversations.find(function (item) { return item.id === activeConversationId; });
     if (!text || !conversation) return;
     var trimmed = text.slice(0, 500);
-    conversation.messages.push({ text: trimmed, mine: true, at: Date.now() });
-    conversation.lastAt = Date.now();
-    saveConversations();
+
+    // Disable input while sending
+    chatInput.disabled = true;
+    chatForm.querySelector('button[type="submit"]').disabled = true;
+
+    try {
+      // Send message via API
+      const response = await fetch('api/messages/send.php', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          'conversation_id': activeConversationId,
+          'body': trimmed
+        })
+      });
+
+      if (!response.ok) throw new Error('Failed to send message');
+      const result = await response.json();
+
+      if (result.success) {
+        // Refresh the conversation to get updated message list
+        await openConversation(activeConversationId);
+      } else {
+        throw new Error(result.error || 'Unknown error');
+      }
+    } catch (error) {
+      console.error('Error sending message:', error);
+      // Show error to user
+      chatInput.placeholder = 'Error sending message. Try again.';
+      chatInput.classList.add('error');
+      setTimeout(() => {
+        chatInput.placeholder = 'Write a message...';
+        chatInput.classList.remove('error');
+      }, 3000);
+    } finally {
+      // Re-enable input
+      chatInput.disabled = false;
+      chatForm.querySelector('button[type="submit"]').disabled = false;
+      chatInput.focus();
+    }
+
+    // Clear input
     chatInput.value = '';
-    openConversation(conversation.id);
-    // typing + auto reply
-    var typing = document.createElement('div');
-    typing.className = 'chat-typing';
-    typing.innerHTML = '<span class="conversation-avatar chat-row-avatar ' + escapeHtml(conversation.avatar) + '">' + escapeHtml(conversation.initials) + '</span><span class="typing-bubble"><i></i><i></i><i></i></span>';
-    chatMessages.appendChild(typing);
-    chatMessages.scrollTop = chatMessages.scrollHeight;
-    var replyText = pickReply(conversation.listing);
-    setTimeout(function () {
-      if (typing.parentNode) typing.remove();
-      conversation.messages.push({ text: replyText, mine: false, at: Date.now() });
-      conversation.lastAt = Date.now();
-      var isActive = activeConversationId === conversation.id && !chatPanel.hidden;
-      if (!isActive) conversation.unread = true;
-      saveConversations();
-      if (isActive) { chatMessages.innerHTML = renderMessages(conversation); chatMessages.scrollTop = chatMessages.scrollHeight; }
-      renderConversations();
-    }, 900 + Math.random() * 600);
+
+    // Note: We're not showing typing indicator or auto-reply for now to keep it simple
+    // These could be re-added if desired, but they require simulating bot behavior
   });
 
   function filterListings() {
