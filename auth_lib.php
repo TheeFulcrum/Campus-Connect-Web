@@ -844,6 +844,47 @@ function ccw_verify_token_and_get_user(?string $token): ?array {
 }
 
 /**
+ * Email a password reset link and code via Resend. Returns the HTTP status (0 if mail is not configured).
+ */
+function ccw_send_password_reset_email(string $email, string $resetToken): int {
+    $apiKey = ccw_environment('RESEND_API_KEY');
+    $from = ccw_environment('CCW_FROM_EMAIL');
+    if ($apiKey === '' || $from === '') return 0;
+
+    $webUrl = rtrim(ccw_environment('CCW_WEB_URL') ?: 'https://campusconnect.ink', '/');
+    $link = $webUrl . '/reset-password.html?token=' . urlencode($resetToken);
+    $safeLink = htmlspecialchars($link, ENT_QUOTES, 'UTF-8');
+    $safeToken = htmlspecialchars($resetToken, ENT_QUOTES, 'UTF-8');
+
+    $payload = json_encode([
+        'from' => $from,
+        'to' => [$email],
+        'subject' => 'Reset your Campus Connect password',
+        'html' => '<p>We received a request to reset your Campus Connect password.</p>'
+            . '<p><a href="' . $safeLink . '">Reset your password</a></p>'
+            . '<p>Using the mobile app? Copy this reset code into the app:</p>'
+            . '<p style="font-family: monospace; word-break: break-all;">' . $safeToken . '</p>'
+            . '<p>This link and code expire in 1 hour and can be used once. If you did not request this, you can ignore this email.</p>'
+    ]);
+
+    $request = curl_init('https://api.resend.com/emails');
+    curl_setopt_array($request, [
+        CURLOPT_POST => true,
+        CURLOPT_POSTFIELDS => $payload,
+        CURLOPT_HTTPHEADER => [
+            'Authorization: Bearer ' . $apiKey,
+            'Content-Type: application/json'
+        ],
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT => 15
+    ]);
+    curl_exec($request);
+    $status = curl_getinfo($request, CURLINFO_RESPONSE_CODE);
+    curl_close($request);
+    return $status;
+}
+
+/**
  * Generate a password reset token for a user email
  * Returns an array with the reset token or error message
  */
@@ -860,16 +901,19 @@ function ccw_create_password_reset_token(string $email): array {
         return ['success' => true, 'message' => 'If an account with that email exists, a password reset link will be sent.'];
     }
 
-    // Generate a secure random token
+    // Generate a secure random token; only its hash is stored
     $resetToken = bin2hex(random_bytes(32));
     $tokenHash = hash('sha256', $resetToken);
     $expiresAt = time() + (60 * 60); // 1 hour expiration
 
-    // Store in database
     try {
+        // Invalidate any earlier unused tokens so only the newest link works
+        $pdo->prepare('UPDATE password_reset_tokens SET used = 1 WHERE email = :email AND used = 0')
+            ->execute(['email' => $email]);
+
         $stmt = $pdo->prepare('INSERT INTO password_reset_tokens (token, email, token_hash, expires_at, created_at) VALUES (:token, :email, :token_hash, :expires_at, :created_at)');
         $stmt->execute([
-            'token' => $resetToken,
+            'token' => $tokenHash,
             'email' => $email,
             'token_hash' => $tokenHash,
             'expires_at' => $expiresAt,
@@ -879,12 +923,17 @@ function ccw_create_password_reset_token(string $email): array {
         return ['success' => false, 'error' => 'Unable to generate reset token.'];
     }
 
-    // In production, you would send this via email
-    // For now, return the token to be used in reset link
+    $deliveryStatus = ccw_send_password_reset_email($email, $resetToken);
+    if ($deliveryStatus < 200 || $deliveryStatus >= 300) {
+        // Log only; the response stays generic so it cannot reveal that the account exists
+        error_log('Campus Connect: password reset email failed with status ' . $deliveryStatus);
+    }
+
+    // reset_token / reset_url are for development testing only; the endpoint strips them in production
     return [
         'success' => true,
         'message' => 'If an account with that email exists, a password reset link will be sent.',
-        'reset_token' => $resetToken, // In production, send via email only
+        'reset_token' => $resetToken,
         'reset_url' => 'reset-password.html?token=' . urlencode($resetToken),
     ];
 }
