@@ -15,7 +15,8 @@ $collections = $stmt->fetchAll();
 
 foreach ($collections as &$collection) {
     $items = $pdo->prepare('
-        SELECT ci.listing_id, l.title, l.price, l.status
+        SELECT ci.listing_id, l.title, l.price, l.status, l.category, l.campus, l.quantity, l.priority, l.event_at,
+               (SELECT image_url FROM listing_images li WHERE li.listing_id = l.id ORDER BY li.display_order LIMIT 1) AS cover_image
         FROM collection_items ci
         JOIN listings l ON l.id = ci.listing_id
         WHERE ci.collection_id = :c
