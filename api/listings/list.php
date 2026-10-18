@@ -41,7 +41,7 @@ $stmt = $pdo->prepare("
     FROM listings l
     JOIN users u ON l.user_id = u.id
     WHERE $whereClause
-    ORDER BY l.created_at DESC
+    ORDER BY l.priority DESC, l.created_at DESC
     LIMIT :limit OFFSET :offset
 ");
 $stmt->bindValue(':limit', $perPage, PDO::PARAM_INT);

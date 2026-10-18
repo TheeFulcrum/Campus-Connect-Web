@@ -39,7 +39,7 @@ try {
 
     // The token and link are delivered by email only; expose them in development for testing
     if (getenv('APP_ENV') !== 'development') {
-        unset($result['reset_token'], $result['reset_url']);
+        unset($result['reset_token'], $result['reset_code'], $result['reset_url']);
     }
     http_response_code(isset($result['error']) ? 500 : 200);
     echo json_encode($result);

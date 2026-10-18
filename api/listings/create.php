@@ -1,6 +1,7 @@
 <?php
 require __DIR__ . '/../../auth_lib.php';
 ccw_load_environment();
+require_once __DIR__ . '/../_listing_alerts.php';
 
 header('Content-Type: application/json');
 
@@ -39,15 +40,25 @@ if (strlen($title) > 160) {
     exit;
 }
 
+$urgency = ccw_parse_listing_urgency($body);
+if ($urgency['error'] !== null) {
+    http_response_code(400);
+    echo json_encode(['success' => false, 'error' => $urgency['error']]);
+    exit;
+}
+$quantity = $urgency['fields']['quantity'] ?? null;
+$eventAt = $urgency['fields']['event_at'] ?? null;
+
 $pdo = ccw_db();
 $user = ccw_verify_token_and_get_user($token);
 $userId = $user['id'];
+$priority = ccw_effective_priority($urgency['fields']['priority'] ?? 0, $quantity, (int) $userId);
 $now = (new DateTime())->format('Y-m-d H:i:s');
 
 try {
     $stmt = $pdo->prepare('
-        INSERT INTO listings (user_id, title, description, category, campus, price, status, created_at, updated_at)
-        VALUES (:user_id, :title, :description, :category, :campus, :price, :status, :created_at, :updated_at)
+        INSERT INTO listings (user_id, title, description, category, campus, price, status, quantity, priority, event_at, created_at, updated_at)
+        VALUES (:user_id, :title, :description, :category, :campus, :price, :status, :quantity, :priority, :event_at, :created_at, :updated_at)
     ');
     $stmt->execute([
         'user_id' => $userId,
@@ -57,6 +68,9 @@ try {
         'campus' => $campus,
         'price' => $price,
         'status' => 'active',
+        'quantity' => $quantity,
+        'priority' => $priority,
+        'event_at' => $eventAt,
         'created_at' => $now,
         'updated_at' => $now
     ]);
@@ -89,9 +103,17 @@ try {
             'campus' => $campus,
             'price' => $price,
             'status' => 'active',
+            'quantity' => $quantity,
+            'priority' => $priority,
+            'event_at' => $eventAt,
             'created_at' => $now
         ]
     ]);
+
+    if ($priority === 1 && $quantity !== null) {
+        ccw_finish_response();
+        ccw_alert_campus_limited_listing($listingId, (int) $userId, $campus, $title, $quantity);
+    }
 } catch (Throwable $e) {
     http_response_code(500);
     echo json_encode(['success' => false, 'error' => 'Failed to create listing.']);

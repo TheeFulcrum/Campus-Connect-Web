@@ -136,6 +136,29 @@ function ccw_db(): PDO {
     $pdo->exec('CREATE INDEX IF NOT EXISTS idx_listings_category ON listings(category);');
     $pdo->exec('CREATE INDEX IF NOT EXISTS idx_listing_images_listing_id ON listing_images(listing_id);');
 
+    // --- Password reset 6-digit code columns (idempotent) ---
+    try { $pdo->exec("ALTER TABLE password_reset_tokens ADD COLUMN code_hash TEXT"); } catch (Throwable $e) {}
+    try { $pdo->exec("ALTER TABLE password_reset_tokens ADD COLUMN attempts INTEGER NOT NULL DEFAULT 0"); } catch (Throwable $e) {}
+
+    // --- Push notification + listing urgency migrations (idempotent) ---
+    $pdo->exec('CREATE TABLE IF NOT EXISTS device_tokens (
+        token TEXT PRIMARY KEY,
+        user_id INTEGER NOT NULL,
+        platform TEXT NOT NULL DEFAULT "android",
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+    );');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_device_tokens_user ON device_tokens(user_id);');
+    $pdo->exec('CREATE TABLE IF NOT EXISTS listing_alerts (
+        listing_id INTEGER NOT NULL,
+        kind TEXT NOT NULL,
+        sent_at TEXT NOT NULL,
+        PRIMARY KEY (listing_id, kind)
+    );');
+    try { $pdo->exec("ALTER TABLE listings ADD COLUMN quantity INTEGER"); } catch (Throwable $e) {}
+    try { $pdo->exec("ALTER TABLE listings ADD COLUMN priority INTEGER NOT NULL DEFAULT 0"); } catch (Throwable $e) {}
+    try { $pdo->exec("ALTER TABLE listings ADD COLUMN event_at INTEGER"); } catch (Throwable $e) {}
+
     // --- Profile & social feature migrations (idempotent) ---
     foreach (['display_name', 'link', 'avatar_path'] as $col) {
         try { $pdo->exec("ALTER TABLE users ADD COLUMN $col TEXT NOT NULL DEFAULT ''"); } catch (Throwable $e) {}
@@ -846,7 +869,7 @@ function ccw_verify_token_and_get_user(?string $token): ?array {
 /**
  * Email a password reset link and code via Resend. Returns the HTTP status (0 if mail is not configured).
  */
-function ccw_send_password_reset_email(string $email, string $resetToken): int {
+function ccw_send_password_reset_email(string $email, string $resetToken, string $resetCode): int {
     $apiKey = ccw_environment('RESEND_API_KEY');
     $from = ccw_environment('CCW_FROM_EMAIL');
     if ($apiKey === '' || $from === '') return 0;
@@ -854,7 +877,7 @@ function ccw_send_password_reset_email(string $email, string $resetToken): int {
     $webUrl = rtrim(ccw_environment('CCW_WEB_URL') ?: 'https://campusconnect.ink', '/');
     $link = $webUrl . '/reset-password.html?token=' . urlencode($resetToken);
     $safeLink = htmlspecialchars($link, ENT_QUOTES, 'UTF-8');
-    $safeToken = htmlspecialchars($resetToken, ENT_QUOTES, 'UTF-8');
+    $safeCode = htmlspecialchars($resetCode, ENT_QUOTES, 'UTF-8');
 
     $payload = json_encode([
         'from' => $from,
@@ -862,9 +885,9 @@ function ccw_send_password_reset_email(string $email, string $resetToken): int {
         'subject' => 'Reset your Campus Connect password',
         'html' => '<p>We received a request to reset your Campus Connect password.</p>'
             . '<p><a href="' . $safeLink . '">Reset your password</a></p>'
-            . '<p>Using the mobile app? Copy this reset code into the app:</p>'
-            . '<p style="font-family: monospace; word-break: break-all;">' . $safeToken . '</p>'
-            . '<p>This link and code expire in 1 hour and can be used once. If you did not request this, you can ignore this email.</p>'
+            . '<p>Using the mobile app? Enter this 6-digit code in the app:</p>'
+            . '<p style="font-size: 28px; font-weight: 700; letter-spacing: 6px;">' . $safeCode . '</p>'
+            . '<p>The code expires in 15 minutes and the link in 1 hour. Each can be used once. If you did not request this, you can ignore this email.</p>'
     ]);
 
     $request = curl_init('https://api.resend.com/emails');
@@ -904,18 +927,21 @@ function ccw_create_password_reset_token(string $email): array {
     // Generate a secure random token; only its hash is stored
     $resetToken = bin2hex(random_bytes(32));
     $tokenHash = hash('sha256', $resetToken);
-    $expiresAt = time() + (60 * 60); // 1 hour expiration
+    $expiresAt = time() + (60 * 60); // 1 hour expiration for the emailed link
+    // Short code for the mobile app; hashed, attempt-limited and valid for CCW_RESET_CODE_TTL_SECONDS
+    $resetCode = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
 
     try {
         // Invalidate any earlier unused tokens so only the newest link works
         $pdo->prepare('UPDATE password_reset_tokens SET used = 1 WHERE email = :email AND used = 0')
             ->execute(['email' => $email]);
 
-        $stmt = $pdo->prepare('INSERT INTO password_reset_tokens (token, email, token_hash, expires_at, created_at) VALUES (:token, :email, :token_hash, :expires_at, :created_at)');
+        $stmt = $pdo->prepare('INSERT INTO password_reset_tokens (token, email, token_hash, code_hash, expires_at, created_at) VALUES (:token, :email, :token_hash, :code_hash, :expires_at, :created_at)');
         $stmt->execute([
             'token' => $tokenHash,
             'email' => $email,
             'token_hash' => $tokenHash,
+            'code_hash' => password_hash($resetCode, PASSWORD_DEFAULT),
             'expires_at' => $expiresAt,
             'created_at' => date('c'),
         ]);
@@ -923,17 +949,18 @@ function ccw_create_password_reset_token(string $email): array {
         return ['success' => false, 'error' => 'Unable to generate reset token.'];
     }
 
-    $deliveryStatus = ccw_send_password_reset_email($email, $resetToken);
+    $deliveryStatus = ccw_send_password_reset_email($email, $resetToken, $resetCode);
     if ($deliveryStatus < 200 || $deliveryStatus >= 300) {
         // Log only; the response stays generic so it cannot reveal that the account exists
         error_log('Campus Connect: password reset email failed with status ' . $deliveryStatus);
     }
 
-    // reset_token / reset_url are for development testing only; the endpoint strips them in production
+    // reset_token / reset_code / reset_url are for development testing only; the endpoint strips them in production
     return [
         'success' => true,
         'message' => 'If an account with that email exists, a password reset link will be sent.',
         'reset_token' => $resetToken,
+        'reset_code' => $resetCode,
         'reset_url' => 'reset-password.html?token=' . urlencode($resetToken),
     ];
 }
@@ -1021,6 +1048,54 @@ function ccw_reset_password_with_token(string $resetToken, string $newPassword):
     }
 }
 
+const CCW_RESET_CODE_TTL_SECONDS = 900;
+const CCW_RESET_CODE_MAX_ATTEMPTS = 5;
+
+/**
+ * Reset a password using the 6-digit code emailed with the reset link.
+ * The code is bound to the email and is invalidated after too many wrong guesses.
+ */
+function ccw_reset_password_with_code(string $email, string $code, string $newPassword): array {
+    $email = strtolower(trim($email));
+    $invalid = ['success' => false, 'error' => 'Invalid or expired code. Please request a new one.'];
+    if ($email === '' || !preg_match('/^\d{6}$/', $code)) return $invalid;
+    if (strlen($newPassword) < 8) {
+        return ['success' => false, 'error' => 'Password must be at least 8 characters long.'];
+    }
+
+    $pdo = ccw_db();
+    $stmt = $pdo->prepare('SELECT token_hash, code_hash, attempts, created_at FROM password_reset_tokens WHERE LOWER(email) = :email AND used = 0 AND code_hash IS NOT NULL ORDER BY created_at DESC LIMIT 1');
+    $stmt->execute(['email' => $email]);
+    $row = $stmt->fetch();
+    if (!$row) return $invalid;
+
+    $createdAt = strtotime((string) $row['created_at']) ?: 0;
+    if (time() > $createdAt + CCW_RESET_CODE_TTL_SECONDS || (int) $row['attempts'] >= CCW_RESET_CODE_MAX_ATTEMPTS) {
+        return $invalid;
+    }
+
+    if (!password_verify($code, (string) $row['code_hash'])) {
+        $pdo->prepare('UPDATE password_reset_tokens SET attempts = attempts + 1 WHERE token_hash = :h')
+            ->execute(['h' => $row['token_hash']]);
+        return $invalid;
+    }
+
+    $user = $pdo->prepare('SELECT id FROM users WHERE LOWER(email) = :email LIMIT 1');
+    $user->execute(['email' => $email]);
+    $userRow = $user->fetch();
+    if (!$userRow) return $invalid;
+
+    try {
+        $pdo->prepare('UPDATE users SET password = :password WHERE id = :id')
+            ->execute(['password' => password_hash($newPassword, PASSWORD_DEFAULT), 'id' => (int) $userRow['id']]);
+        $pdo->prepare('UPDATE password_reset_tokens SET used = 1 WHERE LOWER(email) = :email AND used = 0')
+            ->execute(['email' => $email]);
+        return ['success' => true, 'message' => 'Password has been reset successfully. You can now log in with your new password.'];
+    } catch (Throwable $e) {
+        return ['success' => false, 'error' => 'Unable to reset password. Please try again.'];
+    }
+}
+
 /**
  * Resolve the avatar URL for a user row. Prefers the uploaded avatar_path
  * (served via the controlled uploads endpoint) over the legacy base64 field.
@@ -1050,7 +1125,7 @@ function ccw_profile_shape(array $user): array {
 /**
  * Insert a notification. Silently no-ops for the JSON store or self-notifications.
  */
-function ccw_notify(?int $userId, string $type, ?int $actorId, ?int $entityId, string $body): void {
+function ccw_notify(?int $userId, string $type, ?int $actorId, ?int $entityId, string $body, ?string $pushBody = null, ?string $pushTitle = null): void {
     if (!$userId || ccw_use_json_auth_store()) return;
     if ($actorId !== null && $actorId === $userId) return;
     try {
@@ -1064,7 +1139,16 @@ function ccw_notify(?int $userId, string $type, ?int $actorId, ?int $entityId, s
             'body' => $body,
             'created_at' => (new DateTime())->format('Y-m-d H:i:s'),
         ]);
-    } catch (Throwable $e) {}
+    } catch (Throwable $e) {
+        return;
+    }
+
+    try {
+        require_once __DIR__ . '/push_lib.php';
+        ccw_push_notification($userId, $type, $entityId, $pushBody ?? $body, $pushTitle);
+    } catch (Throwable $e) {
+        error_log('Campus Connect: push failed: ' . $e->getMessage());
+    }
 }
 
 /**

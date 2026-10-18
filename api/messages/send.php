@@ -116,7 +116,8 @@ $pdo->prepare('UPDATE conversations SET updated_at = :t WHERE id = :id')
 
 $otherId = ((int) $conversation['buyer_id'] === $uid) ? (int) $conversation['seller_id'] : (int) $conversation['buyer_id'];
 $actorName = trim((string) ($user['display_name'] ?? '')) !== '' ? $user['display_name'] : $user['username'];
-ccw_notify($otherId, 'message', $uid, (int) $conversation['id'], $actorName . ' sent you a message.');
+ccw_notify($otherId, 'message', $uid, (int) $conversation['id'], $actorName . ' sent you a message.',
+    mb_strimwidth($text, 0, 120, '…'), $actorName);
 
 echo json_encode([
     'success' => true,

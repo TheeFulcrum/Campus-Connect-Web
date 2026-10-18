@@ -1,6 +1,7 @@
 <?php
 require __DIR__ . '/../../auth_lib.php';
 ccw_load_environment();
+require_once __DIR__ . '/../_listing_alerts.php';
 
 header('Content-Type: application/json');
 
@@ -35,11 +36,18 @@ if ($id <= 0) {
 
 $imageIds = $body['image_ids'] ?? null;
 
+$urgency = ccw_parse_listing_urgency($body);
+if ($urgency['error'] !== null) {
+    http_response_code(400);
+    echo json_encode(['success' => false, 'error' => $urgency['error']]);
+    exit;
+}
+
 $pdo = ccw_db();
 $user = ccw_verify_token_and_get_user($token);
 
 // Verify ownership
-$listingStmt = $pdo->prepare('SELECT user_id FROM listings WHERE id = :id');
+$listingStmt = $pdo->prepare('SELECT user_id, title, quantity, priority, campus FROM listings WHERE id = :id');
 $listingStmt->execute(['id' => $id]);
 $listing = $listingStmt->fetch();
 
@@ -70,6 +78,26 @@ if (!empty($status)) {
     $params['status'] = $status;
 }
 
+$newQuantity = array_key_exists('quantity', $urgency['fields']) ? $urgency['fields']['quantity'] : ($listing['quantity'] === null ? null : (int) $listing['quantity']);
+if (array_key_exists('quantity', $urgency['fields'])) {
+    $updates[] = 'quantity = :quantity';
+    $params['quantity'] = $newQuantity;
+}
+if (array_key_exists('event_at', $urgency['fields'])) {
+    $updates[] = 'event_at = :event_at';
+    $params['event_at'] = $urgency['fields']['event_at'];
+}
+$newPriority = null;
+if (array_key_exists('priority', $urgency['fields']) || array_key_exists('quantity', $urgency['fields'])) {
+    $wanted = array_key_exists('priority', $urgency['fields']) ? $urgency['fields']['priority'] : (int) $listing['priority'];
+    // Only charge the daily priority allowance when a listing newly becomes priority
+    $newPriority = (int) $listing['priority'] === 1 && $wanted === 1 && $newQuantity !== null && $newQuantity > 0
+        ? 1
+        : ccw_effective_priority($wanted, $newQuantity, (int) $user['id']);
+    $updates[] = 'priority = :priority';
+    $params['priority'] = $newPriority;
+}
+
 $updateClause = implode(', ', $updates);
 
 try {
@@ -94,6 +122,9 @@ try {
         }
     }
 
+    $notifyLowStock = array_key_exists('quantity', $urgency['fields']) && $newQuantity !== null;
+    $notifyPriority = $newPriority === 1 && (int) $listing['priority'] !== 1 && $newQuantity !== null;
+
     echo json_encode([
         'success' => true,
         'message' => 'Listing updated.',
@@ -102,9 +133,22 @@ try {
             'title' => $title,
             'price' => $price,
             'status' => $status,
+            'quantity' => $newQuantity,
+            'priority' => $newPriority ?? (int) $listing['priority'],
             'updated_at' => $now
         ]
     ]);
+
+    if ($notifyLowStock || $notifyPriority) {
+        ccw_finish_response();
+        $alertTitle = !empty($title) ? $title : (string) $listing['title'];
+        if ($notifyPriority) {
+            ccw_alert_campus_limited_listing($id, (int) $user['id'], (string) $listing['campus'], $alertTitle, $newQuantity);
+        }
+        if ($notifyLowStock) {
+            ccw_alert_low_stock($id, (int) $user['id'], $alertTitle, $newQuantity);
+        }
+    }
 } catch (Throwable $e) {
     http_response_code(500);
     echo json_encode(['success' => false, 'error' => 'Failed to update listing.']);

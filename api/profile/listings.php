@@ -27,7 +27,7 @@ $targetId = (int) $target['id'];
 $total = (int) $pdo->query("SELECT COUNT(*) FROM listings WHERE user_id = $targetId AND status = 'active' AND archived = 0")->fetchColumn();
 
 $stmt = $pdo->prepare("
-    SELECT l.id, l.title, l.price, l.category, l.campus, l.status, l.created_at
+    SELECT l.id, l.title, l.price, l.category, l.campus, l.status, l.quantity, l.priority, l.event_at, l.created_at
     FROM listings l
     WHERE l.user_id = :id AND l.status = 'active' AND l.archived = 0
     ORDER BY l.created_at DESC
